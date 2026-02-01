@@ -3,7 +3,6 @@ package com.jakunya.sqlmaster.Service;
 import com.jakunya.sqlmaster.repository.UserRepository;
 import com.jakunya.sqlmaster.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;

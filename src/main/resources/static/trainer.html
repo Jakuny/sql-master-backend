@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SQL Master - Trainer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/alasql@1.7/dist/alasql.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    
+
     <!-- CodeMirror -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
@@ -17,376 +19,415 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/sql-hint.min.js"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
         .code-font { font-family: 'JetBrains Mono', monospace; }
-        
-        /* Редактор */
-        .CodeMirror { 
-            height: 100% !important; 
-            border-radius: 0.5rem; 
-            font-family: 'JetBrains Mono', monospace; 
-            background-color: #1e293b !important; 
-            color: #e2e8f0 !important; 
-            border: 1px solid #334155; 
-            font-size: 14px;
+
+        .view-section { transition: opacity 0.4s ease, transform 0.4s ease; opacity: 1; transform: translateY(0); z-index: 10; width: 100%; height: 100%; }
+        .view-hidden { opacity: 0; transform: translateY(20px); pointer-events: none; position: absolute; inset: 0; z-index: -1; }
+
+        @keyframes cardPop {
+            0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
+        .task-card-animate { opacity: 0; animation: cardPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        .diff-EASY { color: #4ade80; background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.2); }
+        .diff-MEDIUM { color: #facc15; background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.2); }
+        .diff-HARD { color: #f87171; background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.2); }
+
+        .CodeMirror { height: 100% !important; background-color: #1e293b !important; color: #e2e8f0 !important; border: none; font-family: 'JetBrains Mono'; font-size: 14px; }
         .CodeMirror-gutters { background-color: #1e293b !important; border-right: 1px solid #334155; }
-        
-        /* --- ИСПРАВЛЕННЫЕ ПОДСКАЗКИ (Autocomplete) --- */
-        .CodeMirror-hints {
-            background-color: #1e293b !important; /* Темно-синий фон контейнера */
-            border: 1px solid #475569 !important; /* Рамка */
-            border-radius: 6px !important;
-            padding: 0 !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            z-index: 99999 !important;
-            overflow: hidden !important; /* Чтобы углы скруглялись */
-        }
 
-        /* Элемент списка (неактивный) */
-        li.CodeMirror-hint {
-            background-color: transparent !important;
-            color: #cbd5e1 !important; /* Светло-серый текст */
-            padding: 6px 10px !important;
-            border-radius: 0 !important;
-            font-size: 13px !important;
-            transition: background 0.1s ease;
-        }
+        /* Темные подсказки */
+        .CodeMirror-hints { background-color: #1e293b !important; border: 1px solid #475569 !important; border-radius: 8px !important; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5) !important; padding: 4px !important; font-family: 'JetBrains Mono' !important; z-index: 99999 !important; }
+        .CodeMirror-hint { color: #cbd5e1 !important; padding: 4px 8px !important; border-radius: 4px !important; }
+        .CodeMirror-hint-active { background-color: #3b82f6 !important; color: white !important; font-weight: bold !important; }
 
-        /* Элемент списка (АКТИВНЫЙ/Выбранный) */
-        li.CodeMirror-hint-active {
-            background-color: #3b82f6 !important; /* Ярко-синий фон */
-            color: #ffffff !important; /* Белый текст */
-            font-weight: bold !important;
-        }
+        .logo-glow { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+        .loader { border: 3px solid rgba(255, 255, 255, 0.1); border-left-color: #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Анимации */
-        .collapsible-wrapper { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease-out; overflow: hidden; }
-        .collapsible-wrapper.open { grid-template-rows: 1fr; }
-        .collapsible-inner { min-height: 0; overflow: hidden; }
-
-        /* Модальные окна */
-        .modal-hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
-        .modal-visible { opacity: 1; pointer-events: auto; transform: scale(1); }
-        #success-modal, #cheatsheet-modal { z-index: 9999; }
+        /* Анимация строк таблицы */
+        @keyframes fadeInRow { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-row { animation: fadeInRow 0.3s ease-out forwards; opacity: 0; }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="h-screen flex flex-col overflow-hidden selection:bg-blue-500/30">
 
-    <header class="border-b border-slate-800 bg-slate-900 p-4 flex justify-between items-center shadow-lg z-10">
-        <div class="flex items-center gap-4">
-            <a href="index.html" class="text-slate-400 hover:text-white transition flex items-center gap-1 text-sm font-semibold">
-                <span data-i18n="back_menu">← Меню</span>
-            </a>
-            <div class="h-6 w-px bg-slate-700"></div>
-            <h1 class="text-lg font-bold tracking-tight text-white">SQL <span class="text-blue-500">Trainer</span></h1>
-        </div>
-        
-        <div class="flex items-center gap-3">
-            <select id="lang-select" onchange="if(window.changeLanguage) changeLanguage(this.value)" class="bg-slate-800 text-xs font-bold text-slate-300 border border-slate-700 rounded px-2 py-1 focus:outline-none cursor-pointer">
-                <option value="ru">Русский</option>
-                <option value="en">English</option>
-                <option value="es">Español</option>
-                <option value="zh">中文</option>
-            </select>
-            <div class="w-px h-6 bg-slate-700 mx-2"></div>
-            <div class="text-sm text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-                <span id="current-task-num" class="text-blue-400 font-bold">1</span> / <span id="total-tasks">0</span>
+<header class="border-b border-slate-800 bg-slate-900 p-4 flex justify-between items-center shadow-lg z-50">
+    <div class="flex items-center gap-6">
+        <a href="/" class="font-bold text-xl tracking-tight text-white flex items-center gap-3 select-none group">
+            <div class="bg-blue-600 px-3 py-1 rounded-lg logo-glow tracking-wide text-white group-hover:scale-105 transition-transform duration-300">SQL</div>
+            <span class="group-hover:text-blue-400 transition-colors hidden sm:block">Master</span>
+        </a>
+
+        <!-- Кнопка "Назад в меню" (перевод через data-i18n) -->
+        <button id="back-to-menu-btn" onclick="showMenu()" class="hidden flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white bg-slate-800 border border-slate-700 px-4 py-2 rounded-lg transition hover:border-slate-500">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            <span data-i18n="btn_back_menu">Back to Menu</span>
+        </button>
+    </div>
+
+    <div id="user-profile-block" class="flex items-center gap-4">
+        <div class="loader"></div>
+    </div>
+</header>
+
+<div class="flex-1 relative overflow-hidden bg-[#0f172a]">
+
+    <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-600/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
+
+    <!-- МЕНЮ ЗАДАЧ -->
+    <div id="menu-view" class="view-section absolute inset-0 overflow-y-auto custom-scrollbar p-6 md:p-10 z-20">
+        <div class="max-w-7xl mx-auto relative z-10">
+
+            <div class="mb-12 bg-slate-900/40 border border-slate-700/50 rounded-[2rem] p-8 flex flex-col md:flex-row items-center justify-between shadow-2xl backdrop-blur-md relative overflow-hidden group">
+                <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-purple-500"></div>
+                <div class="mb-6 md:mb-0 text-center md:text-left relative z-10">
+                    <h1 class="text-4xl font-black text-white mb-2 tracking-tight" data-i18n="trainer_header">TRAINING CENTER</h1>
+                    <p class="text-slate-400 font-medium" data-i18n="trainer_desc">Решай задачи с реального бэкенда.</p>
+                </div>
             </div>
-            <button onclick="resetProgress()" class="text-xs text-red-400 hover:text-red-300 ml-2" data-i18n="btn_reset">Сброс</button>
+
+            <div id="tasks-loader" class="flex justify-center py-10"><div class="loader"></div></div>
+            <div id="tasks-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20 hidden"></div>
         </div>
-    </header>
+    </div>
 
-    <div class="flex flex-1 overflow-hidden relative">
-        <aside class="w-1/3 min-w-[350px] border-r border-slate-800 bg-slate-900/50 flex flex-col overflow-y-auto">
-            <div class="p-6">
-                <h2 class="text-lg font-semibold text-blue-400 mb-2" data-i18n="task_title">Задача</h2>
-                <div id="task-description" class="text-slate-300 mb-6 leading-relaxed text-sm"></div>
-                
-                <div class="grid grid-cols-2 gap-2 mb-4">
-                    <button onclick="toggleCollapse('hint-wrapper')" class="text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 border border-slate-700 hover:border-slate-500 px-3 py-2 rounded transition flex items-center justify-center gap-2">
-                        💡 <span data-i18n="btn_hint">Подсказка</span>
-                    </button>
-                    <button onclick="toggleModal('cheatsheet-modal', true)" class="text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 border border-slate-700 hover:border-slate-500 px-3 py-2 rounded transition flex items-center justify-center gap-2">
-                        📘 <span data-i18n="btn_help">Справка</span>
-                    </button>
-                </div>
-                
-                <div id="hint-wrapper" class="collapsible-wrapper mb-2">
-                    <div class="collapsible-inner">
-                        <div class="p-3 bg-blue-900/20 border border-blue-500/30 rounded text-blue-200 text-xs italic">
-                            <span id="hint-text"></span>
-                        </div>
+    <!-- ТРЕНАЖЕР -->
+    <div id="trainer-view" class="view-section view-hidden absolute inset-0 flex h-full z-30 bg-[#0f172a]">
+
+        <div class="flex-1 flex flex-col min-w-0 border-r border-slate-800">
+            <div class="h-1/2 flex flex-col relative">
+                <div class="bg-slate-900 px-6 py-3 flex justify-between items-center border-b border-slate-800">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest" data-i18n="lbl_editor">SQL Editor</span>
+                    <div class="flex items-center gap-2">
+                        <div id="query-spinner" class="loader !w-4 !h-4 hidden mr-2"></div>
+                        <button onclick="runQuery()" id="run-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-900/20 active:scale-95 transition flex items-center gap-2">
+                            <span>▶</span> <span data-i18n="btn_run">Выполнить</span>
+                        </button>
                     </div>
                 </div>
+                <div class="flex-1 relative overflow-hidden">
+                    <textarea id="editor"></textarea>
+                </div>
+            </div>
 
-                <div class="mb-8">
-                    <button onclick="toggleCollapse('answer-wrapper')" class="w-full text-xs font-semibold text-slate-500 hover:text-red-400 border border-slate-700 hover:border-red-400 px-3 py-2 rounded transition flex items-center justify-center gap-2">
-                        👁️ <span data-i18n="btn_answer">Ответ</span>
-                    </button>
-                    <div id="answer-wrapper" class="collapsible-wrapper mt-2">
-                        <div class="collapsible-inner">
-                            <div id="answer-box" class="p-3 bg-slate-800 rounded border border-yellow-600/30 text-yellow-100 text-xs code-font select-all"></div>
-                        </div>
+            <div class="h-1/2 flex flex-col bg-[#0a0f1d] relative">
+                <div class="bg-slate-900 px-6 py-3 border-b border-slate-800 flex justify-between items-center border-t border-slate-800">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest" data-i18n="lbl_result">Output</span>
+                    <span id="status-msg" class="text-xs font-bold uppercase tracking-wider ml-2"></span>
+                </div>
+                <div class="flex-1 overflow-auto custom-scrollbar p-0">
+                    <table class="w-full text-left text-sm whitespace-nowrap hidden" id="result-table">
+                        <thead class="bg-[#05070a] sticky top-0"><tr id="result-head" class="text-blue-500 text-[10px] font-black uppercase tracking-widest border-b border-slate-800/50"></tr></thead>
+                        <tbody id="result-body" class="divide-y divide-slate-800/50 text-slate-400 font-mono text-xs"></tbody>
+                    </table>
+                    <div id="empty-state" class="h-full flex items-center justify-center text-slate-700 text-xs font-black uppercase tracking-widest select-none" data-i18n="empty_state">
+                        Ready to run
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3" data-i18n="sand_struct">Структура БД</h3>
-                <div id="schema-container" class="space-y-4 text-sm"></div>
+        <aside class="w-96 bg-slate-900/50 border-l border-slate-800 flex flex-col overflow-y-auto custom-scrollbar backdrop-blur-sm">
+            <div class="p-8 border-b border-slate-800/50">
+                <div class="flex justify-between items-start mb-4">
+                    <span id="task-difficulty-badge" class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border">...</span>
+                    <div class="flex items-center gap-1 text-yellow-400 font-bold text-sm bg-yellow-400/10 px-3 py-1 rounded-lg border border-yellow-400/20">
+                        <span>+</span><span id="task-xp">0</span><span>XP</span>
+                    </div>
+                </div>
+                <h2 id="task-title" class="text-2xl font-black text-white mb-4 leading-tight">Загрузка...</h2>
+                <div id="task-desc" class="text-sm text-slate-300 leading-relaxed font-medium"></div>
+            </div>
+
+            <div class="p-8 flex-1">
+                <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4" data-i18n="sand_struct">Database Schema</h3>
+                <div id="schema-container" class="space-y-4"></div>
             </div>
         </aside>
+    </div>
 
-        <main class="flex-1 flex flex-col min-w-0 bg-[#0f172a] relative">
-            <div class="h-1/2 flex flex-col p-4 pb-0">
-                <div class="flex justify-between items-end mb-2">
-                    <label class="text-sm font-semibold text-slate-400" data-i18n="lbl_editor">SQL Редактор</label>
-                    <div class="flex gap-2">
-                        <button id="btn-next-inline" onclick="nextTask()" class="hidden bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-md text-sm font-bold shadow-lg transition flex items-center gap-2">
-                            <span>Дальше →</span>
-                        </button>
-                        <button id="btn-run" onclick="runQuerySequence()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-6 py-2 rounded-md text-sm font-bold shadow-lg transition">
-                            ▶ <span data-i18n="btn_run">Выполнить</span>
-                        </button>
+</div>
+
+<!-- Модалка Успеха (теперь с data-i18n) -->
+<div id="success-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity duration-300 opacity-0">
+    <div class="bg-slate-800 border border-green-500/20 p-10 rounded-[2rem] text-center max-w-sm w-full transform scale-95 transition-transform duration-300 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-green-400 to-emerald-600"></div>
+        <div class="text-7xl mb-6 animate-bounce">🎉</div>
+        <h3 class="text-3xl font-black text-white mb-1 uppercase tracking-tight" data-i18n="msg_correct">ВЕРНО!</h3>
+        <p class="text-slate-400 text-sm mb-8 font-medium" id="success-msg"></p>
+        <button onclick="showMenu()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition active:scale-95" data-i18n="btn_back_to_tasks">
+            Вернуться к задачам
+        </button>
+    </div>
+</div>
+
+<script type="module">
+    import { fetchWithAuth, logout } from '/js/api.js';
+    window.logout = logout;
+    const correctSound = new Audio('/sounds/correct_sound.mp3');
+    correctSound.volume = 0.5;
+
+    let cmEditor;
+    let currentTaskId = null;
+    let cachedTasks = [];
+    let currentTaskData = null;
+
+    // Вспомогательная функция для перевода в JS
+    function safeT(key) {
+        return (window.t && typeof window.t === 'function') ? window.t(key) : key;
+    }
+
+    async function initApp() {
+        // Инициализация переводов
+        if (window.initTranslations) window.initTranslations();
+
+        await loadUserProfile();
+        await loadTaskList();
+
+        cmEditor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+            mode: "text/x-sql", theme: "dracula", lineNumbers: true, smartIndent: true
+        });
+    }
+
+    // --- ЗАГРУЗКА СПИСКА ЗАДАЧ ---
+    async function loadTaskList() {
+        const grid = document.getElementById('tasks-grid');
+        const loader = document.getElementById('tasks-loader');
+
+        try {
+            const response = await fetchWithAuth('/api/v1/tasks');
+            if (!response.ok) throw new Error("Failed to load tasks");
+
+            cachedTasks = await response.json();
+            renderMenu(cachedTasks);
+
+            loader.classList.add('hidden');
+            grid.classList.remove('hidden');
+        } catch (e) {
+            console.error(e);
+            grid.innerHTML = `<div class="text-red-500 text-center col-span-3">${safeT('status_error')}</div>`;
+            loader.classList.add('hidden');
+            grid.classList.remove('hidden');
+        }
+    }
+
+    function renderMenu(tasks) {
+        const grid = document.getElementById('tasks-grid');
+        grid.innerHTML = '';
+
+        tasks.forEach((task, index) => {
+            let diffClass = `diff-${task.difficulty}`;
+
+            const card = document.createElement('div');
+            card.className = "task-card-animate bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 rounded-3xl p-8 cursor-pointer transition-all duration-300 relative overflow-hidden group hover:border-blue-500/30 hover:bg-slate-800/80 hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-900/10";
+            card.style.animationDelay = `${index * 100}ms`;
+            card.onclick = () => openTask(task.id);
+
+            card.innerHTML = `
+                    <div class="flex justify-between items-start mb-6">
+                        <span class="${diffClass} text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border shadow-sm">${task.difficulty}</span>
+                        <div class="flex items-center gap-1.5 bg-yellow-400/10 px-3 py-1 rounded-lg border border-yellow-400/20 text-yellow-400 font-bold text-xs">
+                            <span>+${task.xpReward}</span> <span class="text-[9px] uppercase tracking-widest">XP</span>
+                        </div>
                     </div>
-                </div>
-                <div class="flex-1 overflow-hidden rounded-lg shadow-inner">
-                    <textarea id="editor" class="w-full h-full"></textarea>
-                </div>
-            </div>
+                    <h3 class="text-2xl font-bold text-white mb-3 group-hover:text-blue-400 transition-colors leading-tight">${task.title}</h3>
 
-            <div class="h-1/2 flex flex-col p-4 relative">
-                <div class="flex justify-between items-center mb-2">
-                    <label class="text-sm font-semibold text-slate-400" data-i18n="lbl_result">Результат</label>
-                    <span id="status-msg" class="text-sm font-bold transition-opacity duration-300"></span>
-                </div>
-                <div class="flex-1 bg-slate-900 rounded-lg border border-slate-800 overflow-auto relative">
-                    <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-slate-800 sticky top-0 z-10"><tr id="result-head" class="text-slate-300"></tr></thead>
-                        <tbody id="result-body" class="divide-y divide-slate-800 text-slate-400 code-font"></tbody>
-                    </table>
-                    <div id="empty-state" class="absolute inset-0 flex items-center justify-center text-slate-600 select-none">Waiting...</div>
-                </div>
-            </div>
-        </main>
-    </div>
+                    <div class="absolute bottom-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0">
+                        <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-500/40 hover:scale-110 transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </div>
+                    </div>
+                `;
+            grid.appendChild(card);
+        });
+    }
 
-    <div id="cheatsheet-modal" class="fixed inset-0 flex items-center justify-center p-4 transition-all duration-300 modal-hidden" style="background-color: rgba(0,0,0,0.7);" onclick="toggleModal('cheatsheet-modal', false)">
-        <div class="bg-slate-900 border border-slate-600 w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
-            <div id="cheatsheet-content-body" class="p-6 overflow-y-auto custom-scrollbar bg-[#0f172a] text-slate-300"></div>
-        </div>
-    </div>
+    window.openTask = async function(id) {
+        currentTaskId = id;
 
-    <div id="success-modal" class="fixed inset-0 flex items-center justify-center p-4 transition-all duration-300 modal-hidden" style="background-color: rgba(0,0,0,0.8);">
-        <div class="bg-slate-800 border border-green-500/30 p-8 rounded-xl shadow-2xl max-w-sm w-full text-center transform transition-all duration-300 scale-95 opacity-0" id="success-content">
-            <div class="text-6xl mb-4 animate-bounce">🎉</div>
-            <h3 class="text-2xl font-bold text-white mb-2" data-i18n="msg_correct">Верно!</h3>
-            <button onclick="nextTask()" class="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition hover:shadow-lg hover:shadow-green-900/20" data-i18n="btn_next">
-                Дальше
-            </button>
-        </div>
-    </div>
+        document.getElementById('menu-view').classList.add('view-hidden');
+        document.getElementById('trainer-view').classList.remove('view-hidden');
+        document.getElementById('back-to-menu-btn').classList.remove('hidden');
+        document.getElementById('task-title').innerText = safeT('loading') || "Loading...";
 
-    <script src="i18n.js"></script>
-    <script src="tasks.js"></script>
-    <script src="cheatsheet.js"></script>
+        try {
+            const lang = localStorage.getItem('sql_lang') || 'ru';
+            const response = await fetchWithAuth(`/api/v1/tasks/${id}?lang=${lang}`);
+            if(!response.ok) throw new Error("Task not found");
 
-    <script>
-        let currentTaskIndex = 0;
-        let cmEditor;
-        const correctSound = new Audio('sounds/correct_sound.mp3');
-        correctSound.volume = 0.5;
+            const task = await response.json();
+            currentTaskData = task;
 
-        // Безопасная функция перевода
-        function safeT(key, def) {
-            if (typeof window.t === 'function') return window.t(key);
-            return def || key;
-        }
+            document.getElementById('task-title').innerText = task.title;
+            document.getElementById('task-desc').innerHTML = task.description;
+            document.getElementById('task-xp').innerText = task.xpReward;
 
-        window.renderTask = function() {
-            if (!window.SQL_TASKS) return;
-            const task = window.SQL_TASKS[currentTaskIndex];
-            let lang = localStorage.getItem('sql_lang') || 'ru';
-            
-            let desc = (task.desc && task.desc[lang]) ? task.desc[lang] : (task.desc && task.desc['ru'] ? task.desc['ru'] : "Loading...");
-            let hint = (task.hint && task.hint[lang]) ? task.hint[lang] : (task.hint && task.hint['ru'] ? task.hint['ru'] : "");
+            const badge = document.getElementById('task-difficulty-badge');
+            badge.innerText = task.difficulty;
+            badge.className = `px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border diff-${task.difficulty}`;
 
-            document.getElementById('current-task-num').innerText = task.id;
-            document.getElementById('total-tasks').innerText = window.SQL_TASKS.length;
-            document.getElementById('task-description').innerHTML = desc;
-            document.getElementById('hint-text').innerHTML = `☝ ${hint}`;
-            document.getElementById('answer-box').innerText = task.checkSql;
-            
-            document.getElementById('btn-next-inline').classList.add('hidden');
-            
-            if (cmEditor) {
-                if(cmEditor.getValue() === "" || cmEditor.getValue() !== task.default) {
-                    cmEditor.setValue(task.default);
-                }
-                setTimeout(() => cmEditor.refresh(), 50);
+            alasql('DROP DATABASE IF EXISTS task_db'); alasql('CREATE DATABASE task_db'); alasql('USE task_db');
+            if (task.initScript) {
+                const statements = task.initScript.split(';').filter(s => s.trim().length > 0);
+                statements.forEach(sql => alasql(sql));
             }
-
-            document.getElementById('result-head').innerHTML = '';
-            document.getElementById('result-body').innerHTML = '';
-            document.getElementById('status-msg').innerText = '';
-            document.getElementById('empty-state').classList.remove('hidden');
-        };
-
-        function initApp() {
-            if (typeof initTranslations === 'function') initTranslations();
-
-            try {
-                if (window.INIT_DB_SQL) {
-                    alasql('DROP DATABASE IF EXISTS trainer_db');
-                    alasql('CREATE DATABASE trainer_db');
-                    alasql('USE trainer_db');
-                    window.INIT_DB_SQL.forEach(sql => alasql(sql));
-                }
-            } catch(e) { console.error("DB Error", e); }
-
-            const sheetBody = document.getElementById('cheatsheet-content-body');
-            if (sheetBody && window.SQL_CHEATSHEET_HTML) {
-                sheetBody.innerHTML = window.SQL_CHEATSHEET_HTML;
-            }
-
-            const area = document.getElementById("editor");
-            if (area) {
-                cmEditor = CodeMirror.fromTextArea(area, {
-                    mode: "text/x-sql", theme: "dracula", lineNumbers: true, smartIndent: true,
-                    extraKeys: {"Ctrl-Space": "autocomplete"},
-                    hintOptions: window.SQL_AUTOCOMPLETE_CONFIG || {}
-                });
-                cmEditor.on("keyup", (cm, event) => {
-                    if (!cm.state.completionActive && event.keyCode >= 65 && event.keyCode <= 90) 
-                        CodeMirror.commands.autocomplete(cm, null, {completeSingle: false});
-                });
-            }
-
-            loadState();
             renderSchema();
-            renderTask();
+            cmEditor.setValue("SELECT * FROM ...");
+            setTimeout(() => cmEditor.refresh(), 100);
+
+        } catch(e) {
+            console.error(e);
+            alert(safeT('status_error'));
+            showMenu();
         }
 
-        function loadState() {
-            const savedIndex = localStorage.getItem('sql_task_index');
-            if (savedIndex) currentTaskIndex = parseInt(savedIndex);
-            if (!window.SQL_TASKS || !window.SQL_TASKS[currentTaskIndex]) currentTaskIndex = 0;
-        }
+        document.getElementById('empty-msg').classList.remove('hidden');
+        document.getElementById('result-table').classList.add('hidden');
+        document.getElementById('status-msg').innerHTML = '';
+    };
 
-        function saveState() { localStorage.setItem('sql_task_index', currentTaskIndex); }
-        
-        function resetProgress() {
-            if(confirm("Сбросить?")) {
-                localStorage.removeItem('sql_task_index');
-                location.reload();
-            }
-        }
+    window.showMenu = function() {
+        document.getElementById('trainer-view').classList.add('view-hidden');
+        document.getElementById('menu-view').classList.remove('view-hidden');
+        document.getElementById('back-to-menu-btn').classList.add('hidden');
+        document.getElementById('success-modal').classList.add('hidden');
+    };
 
-        function toggleCollapse(id) { document.getElementById(id).classList.toggle('open'); }
+    window.runQuery = async function() {
+        const sql = cmEditor.getValue();
+        const status = document.getElementById('status-msg');
+        const empty = document.getElementById('empty-state');
+        const table = document.getElementById('result-table');
+        const thead = document.getElementById('result-head');
+        const tbody = document.getElementById('result-body');
+        const runBtn = document.getElementById('run-btn');
+        const spinner = document.getElementById('query-spinner');
 
-        function toggleModal(id, show) {
-            const el = document.getElementById(id);
-            if(!el) return;
-            if (show) { el.classList.remove('modal-hidden'); el.classList.add('modal-visible'); } 
-            else { el.classList.remove('modal-visible'); el.classList.add('modal-hidden'); }
-        }
+        empty.classList.add('hidden');
+        table.classList.remove('hidden');
 
-        function renderSchema() {
-            const container = document.getElementById('schema-container');
-            container.innerHTML = '';
-            try {
-                alasql("SHOW TABLES").forEach(t => {
-                    let html = `<div class="font-bold text-slate-300 mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-blue-400">▤ ${t.tableid}</div><ul class="space-y-1 pl-1">`;
-                    alasql(`SHOW COLUMNS FROM ${t.tableid}`).forEach(c => { html += `<li class="flex justify-between text-[11px] font-mono border-b border-slate-700/30 pb-1 last:border-0"><span class="text-slate-300">${c.columnid}</span> <span class="text-slate-600">${c.type || 'INT'}</span></li>`; });
-                    const div = document.createElement('div'); div.className = "bg-slate-800/50 rounded-md p-3 border border-slate-700/50 hover:border-slate-600 transition";
-                    div.innerHTML = html + "</ul>"; container.appendChild(div);
+        // 1. Локальная проверка
+        try {
+            const localRes = alasql(sql);
+            thead.innerHTML = ''; tbody.innerHTML = '';
+            if(Array.isArray(localRes) && localRes.length > 0) {
+                Object.keys(localRes[0]).forEach(k => {
+                    const th = document.createElement('th'); th.className="px-4 py-2 border-b border-slate-800 text-blue-400 text-[10px] font-black uppercase tracking-widest"; th.innerText=k; thead.appendChild(th);
                 });
-            } catch(e) {}
+                localRes.forEach((row, idx) => {
+                    const tr = document.createElement('tr');
+                    // Анимация строк
+                    tr.className = "hover:bg-slate-800/30 transition-colors animate-row";
+                    tr.style.animationDelay = `${idx * 0.05}s`;
+                    Object.values(row).forEach(v => {
+                        const td = document.createElement('td'); td.className="px-4 py-2 text-slate-400 border-b border-slate-800/30"; td.innerText=v; tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+            } else if(typeof localRes === 'object') {
+                tbody.innerHTML = `<tr><td class="p-4 text-slate-400">${JSON.stringify(localRes)}</td></tr>`;
+            }
+        } catch (e) {
+            status.innerHTML = `<span class="text-red-500">${safeT('status_error')}</span>`;
+            tbody.innerHTML = `<tr><td class="p-4 text-red-400 text-xs font-mono">${e.message}</td></tr>`;
+            return;
         }
 
-        function runQuerySequence() {
-            if (!cmEditor) return;
-            const userSql = cmEditor.getValue();
-            const task = window.SQL_TASKS[currentTaskIndex];
-            
-            try {
-                const userResult = alasql(userSql);
-                const expectedResult = alasql(task.checkSql);
-                renderTable(userResult);
+        // 2. Отправка на сервер
+        runBtn.disabled = true;
+        runBtn.classList.add('opacity-50');
+        spinner.classList.remove('hidden');
 
-                if (JSON.stringify(userResult) === JSON.stringify(expectedResult)) {
-                    document.getElementById('status-msg').innerHTML = `<span class="text-green-400">${safeT('msg_correct', 'Верно')}</span>`;
-                    document.getElementById('btn-next-inline').classList.remove('hidden');
-                    try { correctSound.play().catch(()=>{}); } catch(e){}
-                    try { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); } catch(e){}
-                    toggleModal('success-modal', true);
+        try {
+            const serverRes = await fetchWithAuth(`/api/v1/tasks/${currentTaskId}`, {
+                method: 'POST',
+                body: sql,
+                headers: { 'Content-Type': 'text/plain' }
+            });
+
+            const resultText = await serverRes.text(); // "result:true. added 10xp"
+
+            if (resultText.includes("result:true")) {
+                let userMsg = "";
+                if (resultText.includes("added")) {
+                    const match = resultText.match(/added (\d+)xp/);
+                    const xpAmount = match ? match[1] : (currentTaskData ? currentTaskData.xpReward : "0");
+                    userMsg = safeT('msg_correct_xp').replace('{xp}', xpAmount);
                 } else {
-                    document.getElementById('status-msg').innerHTML = `<span class="text-red-400">${safeT('msg_wrong', 'Неверно')}</span>`;
+                    userMsg = safeT('msg_correct_already');
                 }
-            } catch (e) {
-                document.getElementById('status-msg').innerHTML = `<span class="text-red-500">${safeT('status_error', 'Ошибка')}</span>`;
-                document.getElementById('result-body').innerHTML = `<tr><td class="p-4 text-red-400 font-mono text-xs bg-red-900/10 border border-red-900/50 rounded">${e.message}</td></tr>`;
-                document.getElementById('empty-state').classList.add('hidden');
-            }
-        }
 
-        function renderTable(data) {
-            const head = document.getElementById('result-head');
-            const body = document.getElementById('result-body');
-            document.getElementById('empty-state').classList.add('hidden');
-            head.innerHTML = ''; body.innerHTML = '';
+                status.innerHTML = `<span class="text-green-400">${safeT('msg_correct')}</span>`;
+                try { correctSound.currentTime = 0; correctSound.play().catch(()=>{}); } catch(e){}
+                try { confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); } catch(e){}
 
-            if (typeof data === 'number' || typeof data === 'string') {
-                 body.innerHTML = `<tr><td class="p-4">${data}</td></tr>`; return;
-            }
-            if (!data || data.length === 0) {
-                body.innerHTML = '<tr><td class="p-4 text-slate-500 italic">No Data</td></tr>'; return;
-            }
-
-            const keys = Object.keys(data[0]);
-            keys.forEach(k => {
-                const th = document.createElement('th');
-                th.className = "px-4 py-2 bg-slate-800 border-b border-slate-700 text-blue-300 text-xs uppercase tracking-wider";
-                th.innerText = k;
-                head.appendChild(th);
-            });
-
-            data.forEach((row, idx) => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/50 transition-colors";
-                keys.forEach(k => {
-                    const td = document.createElement('td');
-                    td.className = "px-4 py-2 border-b border-slate-800/50 text-slate-300";
-                    td.innerText = row[k];
-                    tr.appendChild(td);
-                });
-                body.appendChild(tr);
-            });
-        }
-
-        function nextTask() {
-            toggleModal('success-modal', false);
-            if (currentTaskIndex < window.SQL_TASKS.length - 1) {
-                currentTaskIndex++;
-                saveState();
-                renderTask();
+                const modal = document.getElementById('success-modal');
+                modal.classList.remove('hidden');
+                document.getElementById('success-msg').innerText = userMsg;
+                setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.add('scale-100'); }, 10);
             } else {
-                alert("Курс завершен!");
-                currentTaskIndex = 0;
-                saveState();
-                renderTask();
+                status.innerHTML = `<span class="text-red-400">${safeT('msg_wrong')}</span>`;
             }
-        }
 
-        document.addEventListener('DOMContentLoaded', initApp);
-    </script>
+        } catch (e) {
+            status.innerHTML = `<span class="text-red-500">${safeT('status_error')}</span>`;
+            console.error(e);
+        } finally {
+            runBtn.disabled = false;
+            runBtn.classList.remove('opacity-50');
+            spinner.classList.add('hidden');
+        }
+    };
+
+    // ... (Функции renderSchema и loadUserProfile остались те же, я не дублирую их чтобы не превышать лимит, они такие же как в прошлом ответе. Вставь их сюда обязательно!) ...
+    function renderSchema() {
+        const container = document.getElementById('schema-container');
+        container.innerHTML = '';
+        try {
+            alasql("SHOW TABLES").forEach(t => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-800/50 rounded-xl p-4 border border-slate-700/50";
+                let html = `<div class="font-black text-blue-400 mb-3 flex items-center gap-2 text-[10px] uppercase tracking-widest">▤ ${t.tableid}</div><ul class="space-y-1.5 pl-1">`;
+                alasql(`SHOW COLUMNS FROM ${t.tableid}`).forEach(c => { html += `<li class="flex justify-between text-[10px] font-mono border-b border-slate-700/20 pb-1 last:border-0"><span class="text-slate-300 font-bold">${c.columnid}</span> <span class="text-slate-600 font-bold">${c.type || 'INT'}</span></li>`; });
+                div.innerHTML = html + "</ul>"; container.appendChild(div);
+            });
+        } catch(e) {}
+    }
+
+    async function loadUserProfile() {
+        const container = document.getElementById('user-profile-block');
+        try {
+            const response = await fetchWithAuth('/api/v1/profiles/me');
+            if (response.ok) {
+                const user = await response.json();
+                let avatarHtml = user.username.charAt(0);
+                if (user.avatarUrl) avatarHtml = `<img src="${user.avatarUrl}" class="w-full h-full object-cover">`;
+                container.innerHTML = `
+                        <a href="/profile/me" class="flex items-center gap-3 group">
+                            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-black text-white border border-white/10 shadow-lg overflow-hidden group-hover:scale-105 transition duration-300">${avatarHtml}</div>
+                            <div class="hidden sm:flex flex-col"><span class="text-xs font-black text-white uppercase tracking-wider leading-none">${user.username}</span><span class="text-[9px] text-blue-400 font-bold uppercase tracking-tighter">LVL ${user.lvl}</span></div>
+                        </a>
+                        <button onclick="logout()" class="text-slate-500 hover:text-red-500 transition p-2 bg-slate-800 rounded-lg hover:bg-slate-700 ml-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg></button>
+                    `;
+            } else {
+                container.innerHTML = `<a href="/login.html" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition shadow-lg shadow-blue-900/20">Войти</a>`;
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+</script>
+<script src="/js/i18n.js"></script>
 </body>
 </html>

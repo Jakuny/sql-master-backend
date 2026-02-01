@@ -7,408 +7,388 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/alasql@1.7/dist/alasql.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    
+
     <!-- CodeMirror -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
+
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
         .code-font { font-family: 'JetBrains Mono', monospace; }
-        
-        /* Редактор */
-        .CodeMirror { 
-            height: 100% !important; 
-            font-family: 'JetBrains Mono'; 
-            background-color: #1e293b !important; 
-            color: #e2e8f0; 
+
+        .CodeMirror {
+            height: 100% !important;
+            font-family: 'JetBrains Mono';
+            background-color: #1e293b !important;
+            color: #e2e8f0;
             border: none;
+            font-size: 14px;
         }
         .CodeMirror-gutters { background-color: #1e293b !important; border-right: 1px solid #334155; }
-        
-        /* Анимации */
+
         .view-section { transition: opacity 0.4s ease; opacity: 1; z-index: 10; }
         .view-hidden { opacity: 0; pointer-events: none; z-index: -1; position: absolute; inset: 0; }
-        
-        /* Точки прогресса */
+
         .dot-active { background-color: #10b981; transform: scale(1.2); box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
         .dot-inactive { background-color: #334155; transform: scale(1); }
 
-        /* Скроллбары */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Стили для текста теории */
+        .prose code { background: #1e293b; padding: 0.2rem 0.4rem; border-radius: 4px; color: #60a5fa; font-family: 'JetBrains Mono'; }
+        .prose pre { background: #020617 !important; border: 1px solid #1e293b; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <!-- Хедер -->
-    <header class="border-b border-slate-800 bg-slate-900 p-4 flex justify-between items-center shadow-lg z-30">
-        <div class="flex items-center gap-4">
-            <a href="index.html" class="text-slate-400 hover:text-white transition flex items-center gap-1 text-sm font-semibold hover:-translate-x-1 duration-200">← Меню</a>
-            <div class="h-6 w-px bg-slate-700"></div>
-            <h1 class="text-lg font-bold tracking-tight text-white">Урок <span id="lesson-id-display" class="text-purple-400">1</span>: <span id="lesson-title-display">...</span></h1>
+<!-- ХЕДЕР (Унифицированный) -->
+<header class="border-b border-slate-800 bg-slate-900 p-4 flex justify-between items-center shadow-lg z-30">
+    <div class="flex items-center gap-4">
+        <a href="/" class="font-bold text-xl tracking-tight text-white flex items-center gap-3 select-none">
+            <div class="bg-blue-600 px-3 py-1 rounded-lg shadow-lg shadow-blue-500/20 tracking-wide text-white">SQL</div>
+            <span>Master</span>
+        </a>
+    </div>
+
+    <div class="flex items-center gap-3 bg-slate-800 px-4 py-1.5 rounded-full border border-slate-700">
+        <div class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Progress</div>
+        <div class="flex gap-2">
+            <div id="dot-1" class="w-2.5 h-2.5 rounded-full dot-inactive transition-all duration-300"></div>
+            <div id="dot-2" class="w-2.5 h-2.5 rounded-full dot-inactive transition-all duration-300"></div>
+            <div id="dot-3" class="w-2.5 h-2.5 rounded-full dot-inactive transition-all duration-300"></div>
         </div>
-        
-        <div class="flex items-center gap-3 bg-slate-800 px-4 py-1.5 rounded-full border border-slate-700">
-            <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Прогресс</div>
-            <div class="flex gap-2">
-                <div id="dot-1" class="w-3 h-3 rounded-full dot-inactive transition-all duration-300"></div>
-                <div id="dot-2" class="w-3 h-3 rounded-full dot-inactive transition-all duration-300"></div>
-                <div id="dot-3" class="w-3 h-3 rounded-full dot-inactive transition-all duration-300"></div>
+    </div>
+</header>
+
+<div class="flex flex-1 overflow-hidden relative">
+
+    <!-- Сайдбар: Список уроков -->
+    <aside class="w-64 border-r border-slate-800 bg-slate-900/50 flex flex-col z-20 flex-shrink-0">
+        <div class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-slate-800/50">Syllabus</div>
+        <div id="lessons-list" class="space-y-1 p-2 overflow-y-auto custom-scrollbar flex-1">
+            <!-- Генерируется JS -->
+        </div>
+    </aside>
+
+    <!-- Основная область -->
+    <main class="flex-1 relative bg-[#0f172a] overflow-hidden flex flex-col">
+
+        <!-- 1. ЭКРАН ТЕОРИИ -->
+        <div id="theory-view" class="view-section absolute inset-0 flex flex-col bg-[#0f172a]">
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar flex justify-center">
+                <div class="max-w-3xl w-full">
+                    <div class="w-16 h-1 bg-purple-500 rounded mb-6 shadow-[0_0_15px_rgba(168,85,247,0.5)]"></div>
+                    <h2 class="text-4xl font-black text-white mb-8 tracking-tight" id="lesson-title-display">...</h2>
+                    <div id="theory-content" class="prose prose-invert prose-blue max-w-none text-slate-300 mb-20 leading-relaxed">
+                        <!-- Контент теории -->
+                    </div>
+                </div>
+            </div>
+            <!-- Кнопка перехода -->
+            <div class="p-6 border-t border-slate-800 bg-slate-900/80 backdrop-blur-md flex justify-center z-10">
+                <button onclick="startPractice()" class="group px-10 py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-purple-900/20 transition-all transform hover:scale-[1.02] flex items-center gap-3">
+                    <span>Начать практику</span>
+                    <svg class="w-5 h-5 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
             </div>
         </div>
-    </header>
 
-    <div class="flex flex-1 overflow-hidden relative">
-        
-        <!-- Сайдбар: Список уроков (Слева, статический) -->
-        <aside class="w-64 border-r border-slate-800 bg-slate-900/50 flex flex-col z-20 flex-shrink-0">
-            <div class="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">Программа курса</div>
-            <div id="lessons-list" class="space-y-1 p-2 overflow-y-auto custom-scrollbar flex-1">
-                <!-- Генерируется JS -->
-            </div>
-        </aside>
+        <!-- 2. ЭКРАН ПРАКТИКИ -->
+        <div id="practice-view" class="view-section view-hidden absolute inset-0 flex h-full bg-[#0f172a]">
 
-        <!-- Основная область -->
-        <main class="flex-1 relative bg-[#0f172a] overflow-hidden flex flex-col">
-            
-            <!-- 1. ЭКРАН ТЕОРИИ -->
-            <div id="theory-view" class="view-section absolute inset-0 flex flex-col bg-[#0f172a]">
-                <!-- Контейнер для скролла текста -->
-                <div class="flex-1 overflow-y-auto p-8 custom-scrollbar flex justify-center">
-                    <div class="max-w-3xl w-full">
-                        <div class="w-16 h-1 bg-purple-500 rounded mb-6"></div>
-                        <div id="theory-content" class="prose prose-invert prose-lg text-slate-300 mb-10 leading-relaxed"></div>
-                    </div>
-                </div>
-                <!-- Фиксированная кнопка внизу -->
-                <div class="p-6 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm flex justify-center">
-                    <button onclick="startPractice()" class="group px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-purple-900/20 transition-all transform hover:scale-[1.01] flex items-center gap-3">
-                        <span>Перейти к практике</span>
-                        <svg class="w-5 h-5 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- 2. ЭКРАН ПРАКТИКИ (Split Layout) -->
-            <div id="practice-view" class="view-section view-hidden absolute inset-0 flex h-full bg-[#0f172a]">
-                
-                <!-- Левая часть: Редактор и Результат -->
-                <div class="flex-1 flex flex-col min-w-0">
-                    <!-- Редактор (Верх) -->
-                    <div class="h-1/2 flex flex-col border-b border-slate-800">
-                        <div class="bg-slate-900 px-4 py-2 flex justify-between items-center border-b border-slate-800">
-                            <div class="flex items-center gap-2 text-slate-400">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                                <span class="text-xs font-mono font-bold">query.sql</span>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="skipTask()" class="text-xs text-slate-500 hover:text-slate-300 transition mr-2 underline">Показать ответ</button>
-                                <button onclick="checkAnswer()" class="bg-green-600 hover:bg-green-500 text-white px-5 py-1.5 rounded text-xs font-bold transition shadow-lg shadow-green-900/20 active:scale-95 flex items-center gap-2">
-                                    <span>▶ Выполнить</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="flex-1 relative">
-                            <textarea id="editor"></textarea>
-                        </div>
-                    </div>
-                    
-                    <!-- Результат (Низ) -->
-                    <div class="h-1/2 flex flex-col bg-[#0f172a]">
-                        <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between items-center">
-                            <span class="text-xs text-slate-400 font-mono font-bold pl-1">Результат</span>
-                            <span id="result-status" class="text-xs font-bold"></span>
-                        </div>
-                        <div id="result-container" class="flex-1 p-0 overflow-auto font-mono text-sm text-slate-400 bg-[#0f172a] custom-scrollbar">
-                            <div id="empty-msg" class="h-full flex flex-col items-center justify-center text-slate-600 italic select-none">
-                                <div class="text-4xl mb-2 opacity-20">⌨️</div>
-                                <div>Напишите код и нажмите "Выполнить"</div>
-                            </div>
-                            <table class="w-full text-left border-collapse hidden" id="result-table">
-                                <thead class="bg-slate-800/50 sticky top-0"><tr id="result-head" class="text-purple-300 border-b border-slate-700"></tr></thead>
-                                <tbody id="result-body" class="divide-y divide-slate-800/50"></tbody>
-                            </table>
-                            <div id="error-msg" class="hidden m-4 text-red-400 bg-red-900/10 p-4 rounded-lg border border-red-500/20 text-xs"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Правая часть: Задание и Схема (Как в Trainer) -->
-                <aside class="w-80 border-l border-slate-800 bg-slate-900/50 flex flex-col overflow-y-auto custom-scrollbar">
-                    
-                    <!-- Блок задания -->
-                    <div class="p-6 border-b border-slate-800/50">
-                        <div class="flex justify-between items-center mb-3">
-                            <span class="inline-block px-2 py-1 bg-purple-900/30 text-purple-300 rounded text-[10px] font-bold uppercase tracking-wider border border-purple-500/20">
-                                Задача <span id="task-num">1</span> / 3
-                            </span>
-                            <button onclick="backToTheory()" class="text-[10px] text-slate-500 hover:text-white transition uppercase font-bold tracking-wider">
-                                📖 Теория
+            <!-- Лево: Редактор и Результат -->
+            <div class="flex-1 flex flex-col min-w-0">
+                <!-- Редактор -->
+                <div class="h-1/2 flex flex-col border-b border-slate-800">
+                    <div class="bg-slate-900 px-4 py-2 flex justify-between items-center border-b border-slate-800">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">SQL Input</span>
+                        <div class="flex items-center gap-3">
+                            <button onclick="skipTask()" class="text-[10px] text-slate-500 hover:text-red-400 transition uppercase font-bold tracking-wider">Пропустить</button>
+                            <button onclick="checkAnswer()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-1.5 rounded-lg text-xs font-bold transition shadow-lg shadow-blue-900/20 active:scale-95">
+                                Выполнить
                             </button>
                         </div>
-                        <div id="task-desc" class="text-sm text-slate-200 leading-relaxed"></div>
                     </div>
+                    <div class="flex-1 relative">
+                        <textarea id="editor"></textarea>
+                    </div>
+                </div>
 
-                    <!-- Блок Схемы БД (Новое!) -->
-                    <div class="p-6 flex-1">
-                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">База данных урока</h3>
-                        <div id="schema-container" class="space-y-3 text-sm">
-                            <!-- Сюда попадут таблицы -->
+                <!-- Результат -->
+                <div class="h-1/2 flex flex-col bg-[#0f172a]">
+                    <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between items-center">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Query Output</span>
+                        <span id="result-status" class="text-xs font-bold"></span>
+                    </div>
+                    <div id="result-container" class="flex-1 p-0 overflow-auto font-mono text-sm text-slate-400 custom-scrollbar bg-[#0a0f1d]">
+                        <div id="empty-msg" class="h-full flex flex-col items-center justify-center text-slate-700 select-none">
+                            <div class="text-3xl mb-2 opacity-10">SELECT *</div>
                         </div>
+                        <table class="w-full text-left border-collapse hidden" id="result-table">
+                            <thead class="bg-slate-900 sticky top-0"><tr id="result-head" class="text-blue-400 border-b border-slate-800 text-[11px] uppercase tracking-wider"></tr></thead>
+                            <tbody id="result-body" class="divide-y divide-slate-800/50"></tbody>
+                        </table>
+                        <div id="error-msg" class="hidden m-4 text-red-400 bg-red-900/10 p-4 rounded-lg border border-red-500/20 text-xs font-mono"></div>
                     </div>
-                </aside>
-
+                </div>
             </div>
 
-        </main>
-    </div>
+            <!-- Право: Задача и Схема БД -->
+            <aside class="w-80 border-l border-slate-800 bg-slate-900/50 flex flex-col overflow-y-auto custom-scrollbar">
 
-    <!-- Модалка завершения -->
-    <div id="lesson-complete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none">
-        <div class="bg-slate-800 p-8 rounded-2xl border border-purple-500/30 text-center max-w-md w-full transform scale-95 transition-transform duration-300">
-            <div class="text-6xl mb-6 animate-bounce">🏆</div>
-            <h2 class="text-2xl font-bold text-white mb-2">Урок пройден!</h2>
-            <p class="text-slate-400 mb-8">Вы успешно решили все задачи этого модуля.</p>
-            <div class="flex flex-col gap-3">
-                <button onclick="nextLesson()" class="w-full bg-purple-600 hover:bg-purple-500 text-white py-3.5 rounded-xl font-bold transition shadow-lg shadow-purple-500/20">Следующий урок →</button>
-                <button onclick="location.href='index.html'" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-3.5 rounded-xl font-bold transition">В главное меню</button>
-            </div>
+                <div class="p-6 border-b border-slate-800/50 bg-slate-900/30">
+                    <div class="flex justify-between items-center mb-4">
+                            <span class="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded text-[10px] font-black uppercase tracking-widest border border-purple-500/20">
+                                Task <span id="task-num">1</span>/3
+                            </span>
+                        <button onclick="backToTheory()" class="text-[10px] text-slate-500 hover:text-white transition uppercase font-black tracking-widest">
+                            📖 Theory
+                        </button>
+                    </div>
+                    <div id="task-desc" class="text-sm text-slate-200 leading-relaxed font-medium"></div>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Current Schema</h3>
+                    <div id="schema-container" class="space-y-3">
+                        <!-- Таблицы -->
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </main>
+</div>
+
+<!-- Модалка завершения -->
+<div id="lesson-complete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl transition-all duration-300 opacity-0 pointer-events-none">
+    <div class="bg-slate-800 p-10 rounded-[2rem] border border-purple-500/30 text-center max-w-sm w-full shadow-2xl">
+        <div class="text-7xl mb-6">🏆</div>
+        <h2 class="text-2xl font-black text-white mb-2 uppercase tracking-tight">Урок завершен!</h2>
+        <p class="text-slate-400 text-sm mb-8">Вы отлично справились со всеми задачами модуля.</p>
+        <div class="space-y-3">
+            <button onclick="nextLesson()" class="w-full bg-purple-600 hover:bg-purple-500 text-white py-4 rounded-2xl font-bold transition shadow-lg shadow-purple-900/20">Следующий урок →</button>
+            <a href="/" class="w-full block bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-2xl font-bold transition">В главное меню</a>
         </div>
     </div>
+</div>
 
-    <script src="lessons_data.js"></script>
+<script src="/js/lessons_data.js"></script>
+<script>
+    let currentLessonIndex = 0;
+    let currentTaskIndex = 0;
+    let cmEditor;
+    const correctSound = new Audio('/sounds/correct_sound.mp3');
+    correctSound.volume = 0.4;
 
-    <script>
-        let currentLessonIndex = 0;
-        let currentTaskIndex = 0;
-        let cmEditor;
-        const correctSound = new Audio('sounds/correct_sound.mp3');
-        correctSound.volume = 0.5;
-
-        function init() {
-            const list = document.getElementById('lessons-list');
+    function init() {
+        // Список уроков слева
+        const list = document.getElementById('lessons-list');
+        if (window.COURSES) {
             window.COURSES.forEach((course, idx) => {
                 const btn = document.createElement('button');
-                btn.className = "w-full text-left px-4 py-3 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition mb-1 flex items-center gap-3 group";
-                btn.innerHTML = `<span class="w-5 h-5 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-[10px] font-bold group-hover:bg-purple-600 group-hover:text-white transition">${idx + 1}</span><span class="truncate">${course.title}</span>`;
+                btn.className = "w-full text-left px-4 py-3 text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition mb-1 flex items-center gap-3 group";
+                btn.innerHTML = `<span class="w-6 h-6 rounded-lg bg-slate-800 text-slate-500 flex items-center justify-center text-[10px] font-black group-hover:bg-purple-600 group-hover:text-white transition">${idx + 1}</span><span class="truncate">${course.title}</span>`;
                 btn.onclick = () => loadLesson(idx);
                 list.appendChild(btn);
             });
-            cmEditor = CodeMirror.fromTextArea(document.getElementById("editor"), { mode: "text/x-sql", theme: "dracula", lineNumbers: true, smartIndent: true });
-            loadLesson(0);
         }
 
-        function loadLesson(index) {
-            if (index >= window.COURSES.length) return;
-            currentLessonIndex = index;
-            currentTaskIndex = 0;
-            const lesson = window.COURSES[index];
-            document.getElementById('lesson-id-display').innerText = lesson.id;
-            document.getElementById('lesson-title-display').innerText = lesson.title;
-            [1,2,3].forEach(i => document.getElementById(`dot-${i}`).className = "w-3 h-3 rounded-full dot-inactive transition-all duration-300");
-            document.getElementById('theory-content').innerHTML = lesson.theory;
-            
-            showTheory(); // Показываем теорию, скрываем практику
-            hideModal();
+        // Инициализация редактора
+        cmEditor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+            mode: "text/x-sql",
+            theme: "dracula",
+            lineNumbers: true,
+            smartIndent: true,
+            indentWithTabs: true
+        });
 
-            // Инициализация БД для урока
-            try {
-                alasql('DROP DATABASE IF EXISTS lesson_db'); alasql('CREATE DATABASE lesson_db'); alasql('USE lesson_db');
-                if (lesson.initSql) lesson.initSql.forEach(sql => alasql(sql));
-                
-                // Рендерим схему СРАЗУ ПОСЛЕ создания БД
-                renderSchema();
-            } catch(e) { console.error("Lesson DB Init Error", e); }
-        }
+        loadLesson(0);
+    }
 
-        function renderSchema() {
-            const container = document.getElementById('schema-container');
-            container.innerHTML = '';
-            
-            try {
-                const tables = alasql("SHOW TABLES");
-                if (tables.length === 0) {
-                    container.innerHTML = '<div class="text-slate-600 text-xs italic">Нет таблиц (Калькулятор)</div>';
-                    return;
-                }
+    function loadLesson(index) {
+        if (!window.COURSES || index >= window.COURSES.length) return;
+        currentLessonIndex = index;
+        currentTaskIndex = 0;
+        const lesson = window.COURSES[index];
 
-                tables.forEach(t => {
-                    const div = document.createElement('div');
-                    div.className = "bg-slate-800 rounded p-3 border border-slate-700/50";
-                    let html = `<div class="font-bold text-slate-300 mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-blue-400">▤ ${t.tableid}</div><ul class="space-y-1 pl-1">`;
-                    
-                    try {
-                        const cols = alasql(`SHOW COLUMNS FROM ${t.tableid}`);
-                        cols.forEach(c => {
-                            html += `<li class="flex justify-between text-[10px] font-mono border-b border-slate-700/30 pb-1 last:border-0"><span class="text-slate-300">${c.columnid}</span> <span class="text-slate-600">${c.type || 'INT'}</span></li>`;
-                        });
-                    } catch(e) {}
-                    
-                    html += `</ul>`;
-                    div.innerHTML = html;
-                    container.appendChild(div);
+        document.getElementById('lesson-id-display').innerText = index + 1;
+        document.getElementById('lesson-title-display').innerText = lesson.title;
+
+        // Сброс индикаторов
+        [1,2,3].forEach(i => document.getElementById(`dot-${i}`).className = "w-2.5 h-2.5 rounded-full dot-inactive transition-all");
+
+        document.getElementById('theory-content').innerHTML = lesson.theory;
+
+        showTheory();
+        hideModal();
+
+        // База данных
+        try {
+            alasql('DROP DATABASE IF EXISTS lesson_db');
+            alasql('CREATE DATABASE lesson_db');
+            alasql('USE lesson_db');
+            if (lesson.initSql) lesson.initSql.forEach(sql => alasql(sql));
+            renderSchema();
+        } catch(e) { console.error(e); }
+    }
+
+    function renderSchema() {
+        const container = document.getElementById('schema-container');
+        container.innerHTML = '';
+        try {
+            const tables = alasql("SHOW TABLES");
+            if (tables.length === 0) {
+                container.innerHTML = '<div class="text-slate-600 text-[10px] italic uppercase tracking-widest">No tables</div>';
+                return;
+            }
+            tables.forEach(t => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-800/50 rounded-xl p-3 border border-slate-700/50";
+                let html = `<div class="font-black text-blue-400 mb-2 flex items-center gap-2 text-[10px] uppercase tracking-widest">▤ ${t.tableid}</div><ul class="space-y-1 pl-1">`;
+                const cols = alasql(`SHOW COLUMNS FROM ${t.tableid}`);
+                cols.forEach(c => {
+                    html += `<li class="flex justify-between text-[10px] font-mono border-b border-slate-700/20 pb-1 last:border-0"><span class="text-slate-300">${c.columnid}</span> <span class="text-slate-600">${c.type || 'INT'}</span></li>`;
                 });
-            } catch(e) {
-                console.log("Schema render info:", e);
-            }
-        }
+                div.innerHTML = html + "</ul>";
+                container.appendChild(div);
+            });
+        } catch(e) {}
+    }
 
-        function showTheory() {
-            const theoryView = document.getElementById('theory-view');
-            const practiceView = document.getElementById('practice-view');
-            practiceView.classList.add('view-hidden');
-            theoryView.classList.remove('view-hidden');
-        }
+    function showTheory() {
+        document.getElementById('practice-view').classList.add('view-hidden');
+        document.getElementById('theory-view').classList.remove('view-hidden');
+    }
 
-        function backToTheory() {
-            showTheory();
-        }
+    function backToTheory() { showTheory(); }
 
-        function startPractice() {
-            const theoryView = document.getElementById('theory-view');
-            const practiceView = document.getElementById('practice-view');
-            theoryView.classList.add('view-hidden');
-            practiceView.classList.remove('view-hidden');
-            setTimeout(() => { cmEditor.refresh(); }, 100);
-            loadTask();
-        }
+    function startPractice() {
+        document.getElementById('theory-view').classList.add('view-hidden');
+        document.getElementById('practice-view').classList.remove('view-hidden');
+        setTimeout(() => { cmEditor.refresh(); }, 50);
+        loadTask();
+    }
 
-        function loadTask() {
-            const lesson = window.COURSES[currentLessonIndex];
-            const task = lesson.tasks[currentTaskIndex];
-            
-            // Берем язык из локального хранилища, если есть глобальная система, 
-            // но в уроках у нас пока структура tasks проще (см. lessons_data.js).
-            // Если ты обновил lessons_data.js под мультиязычность, используй логику как в trainer.
-            // Пока используем прямую вставку (предполагая что lessons_data.js еще простой).
-            
-            // Если lessons_data.js обновлен до { desc: { ru: ... } }:
-            let desc = task.desc;
-            if (typeof task.desc === 'object') {
-                let lang = localStorage.getItem('sql_lang') || 'ru';
-                desc = task.desc[lang] || task.desc['ru'];
-            }
+    function loadTask() {
+        const lesson = window.COURSES[currentLessonIndex];
+        const task = lesson.tasks[currentTaskIndex];
+        document.getElementById('task-num').innerText = currentTaskIndex + 1;
+        document.getElementById('task-desc').innerHTML = task.desc;
+        cmEditor.setValue(task.default || "");
 
-            document.getElementById('task-num').innerText = currentTaskIndex + 1;
-            
-            // Анимация текста
-            const descEl = document.getElementById('task-desc');
-            descEl.style.opacity = 0;
-            setTimeout(() => { 
-                descEl.innerHTML = desc; 
-                descEl.style.opacity = 1; 
-            }, 150);
+        document.getElementById('empty-msg').classList.remove('hidden');
+        document.getElementById('result-table').classList.add('hidden');
+        document.getElementById('error-msg').classList.add('hidden');
+        document.getElementById('result-status').innerText = '';
+    }
 
-            cmEditor.setValue(task.default);
-            document.getElementById('empty-msg').classList.remove('hidden');
-            document.getElementById('result-table').classList.add('hidden');
-            document.getElementById('error-msg').classList.add('hidden');
-            document.getElementById('result-status').innerText = '';
-        }
+    function skipTask() {
+        const task = window.COURSES[currentLessonIndex].tasks[currentTaskIndex];
+        cmEditor.setValue(task.checkSql);
+        checkAnswer();
+    }
 
-        function skipTask() {
-            const task = window.COURSES[currentLessonIndex].tasks[currentTaskIndex];
-            if(confirm("Вставить правильный ответ?")) {
-                cmEditor.setValue(task.checkSql);
-                checkAnswer();
-            }
-        }
+    function checkAnswer() {
+        const userSql = cmEditor.getValue();
+        const lesson = window.COURSES[currentLessonIndex];
+        const task = lesson.tasks[currentTaskIndex];
 
-        function checkAnswer() {
-            const userSql = cmEditor.getValue();
-            const lesson = window.COURSES[currentLessonIndex];
-            const task = lesson.tasks[currentTaskIndex];
+        const table = document.getElementById('result-table');
+        const thead = document.getElementById('result-head');
+        const tbody = document.getElementById('result-body');
+        const errorDiv = document.getElementById('error-msg');
+        const emptyMsg = document.getElementById('empty-msg');
+        const statusEl = document.getElementById('result-status');
 
-            const table = document.getElementById('result-table');
-            const thead = document.getElementById('result-head');
-            const tbody = document.getElementById('result-body');
-            const errorDiv = document.getElementById('error-msg');
-            const emptyMsg = document.getElementById('empty-msg');
-            const statusEl = document.getElementById('result-status');
+        emptyMsg.classList.add('hidden');
+        errorDiv.classList.add('hidden');
+        table.classList.remove('hidden');
 
-            emptyMsg.classList.add('hidden'); errorDiv.classList.add('hidden'); table.classList.remove('hidden');
+        try {
+            const userRes = alasql(userSql);
+            const checkRes = alasql(task.checkSql);
 
-            try {
-                const userRes = alasql(userSql);
-                const checkRes = alasql(task.checkSql);
-
-                thead.innerHTML = ''; tbody.innerHTML = '';
-                if (Array.isArray(userRes) && userRes.length > 0) {
-                    const keys = Object.keys(userRes[0]);
-                    let trH = document.createElement('tr');
-                    keys.forEach(k => { let th = document.createElement('th'); th.className = "px-4 py-2 text-left font-semibold text-xs uppercase tracking-wider text-blue-300"; th.innerText = k; trH.appendChild(th); });
-                    thead.appendChild(trH);
-                    userRes.forEach((row, idx) => {
-                        let tr = document.createElement('tr'); tr.className = "hover:bg-slate-800/50 transition-colors";
-                        keys.forEach(k => { let td = document.createElement('td'); td.className = "px-4 py-2 text-slate-400"; td.innerText = row[k]; tr.appendChild(td); });
-                        tbody.appendChild(tr);
-                    });
-                } else if (typeof userRes === 'object') {
-                    // Одиночный результат (число/строка)
+            thead.innerHTML = ''; tbody.innerHTML = '';
+            if (Array.isArray(userRes) && userRes.length > 0) {
+                const keys = Object.keys(userRes[0]);
+                let trH = document.createElement('tr');
+                keys.forEach(k => {
+                    let th = document.createElement('th');
+                    th.className = "px-4 py-2 text-left";
+                    th.innerText = k;
+                    trH.appendChild(th);
+                });
+                thead.appendChild(trH);
+                userRes.forEach(row => {
                     let tr = document.createElement('tr');
-                    let td = document.createElement('td'); td.className="px-4 py-2 text-slate-400"; td.innerText = JSON.stringify(userRes);
-                    tr.appendChild(td); tbody.appendChild(tr);
-                }
-
-                // Проверка
-                let isCorrect = false;
-                // Смягченная проверка для одиночных значений
-                if (Array.isArray(userRes) && userRes.length === 1 && Object.keys(userRes[0]).length === 1 &&
-                    Array.isArray(checkRes) && checkRes.length === 1) {
-                    const uVal = Object.values(userRes[0])[0];
-                    const cVal = Object.values(checkRes[0])[0];
-                    if (uVal == cVal) isCorrect = true;
-                } else {
-                    if (JSON.stringify(userRes) === JSON.stringify(checkRes)) isCorrect = true;
-                }
-
-                if (isCorrect) {
-                    statusEl.innerHTML = '<span class="text-green-400 animate-pulse">✅ Верно</span>';
-                    correctSound.currentTime = 0; correctSound.play().catch(()=>{});
-                    
-                    const dot = document.getElementById(`dot-${currentTaskIndex + 1}`);
-                    dot.classList.remove('dot-inactive'); dot.classList.add('dot-active');
-
-                    if (currentTaskIndex < 2) { setTimeout(() => { currentTaskIndex++; loadTask(); }, 1200); } 
-                    else { setTimeout(showCompleteModal, 1000); }
-                } else {
-                    statusEl.innerHTML = '<span class="text-red-400">❌ Неверно</span>';
-                }
-
-            } catch (e) {
-                table.classList.add('hidden'); errorDiv.innerText = e.message; errorDiv.classList.remove('hidden');
-                statusEl.innerHTML = '<span class="text-red-500">⚠ Ошибка</span>';
+                    tr.className = "hover:bg-slate-800/30 transition-colors";
+                    keys.forEach(k => {
+                        let td = document.createElement('td');
+                        td.className = "px-4 py-2 border-b border-slate-800/30";
+                        td.innerText = row[k];
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
             }
-        }
 
-        function showCompleteModal() {
-            confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
-            const modal = document.getElementById('lesson-complete-modal');
-            const content = modal.querySelector('div');
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); content.classList.remove('scale-95'); content.classList.add('scale-100'); }, 10);
-        }
+            // Логика проверки
+            let isCorrect = false;
+            if (Array.isArray(userRes) && userRes.length === 1 && Object.keys(userRes[0]).length === 1 &&
+                Array.isArray(checkRes) && checkRes.length === 1) {
+                if (Object.values(userRes[0])[0] == Object.values(checkRes[0])[0]) isCorrect = true;
+            } else if (JSON.stringify(userRes) === JSON.stringify(checkRes)) {
+                isCorrect = true;
+            }
 
-        function hideModal() {
-            const modal = document.getElementById('lesson-complete-modal');
-            modal.classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        }
+            if (isCorrect) {
+                statusEl.innerHTML = '<span class="text-green-400">✅ CORRECT</span>';
+                correctSound.play().catch(()=>{});
+                document.getElementById(`dot-${currentTaskIndex + 1}`).classList.add('dot-active');
 
-        function nextLesson() {
-            if (currentLessonIndex < window.COURSES.length - 1) { loadLesson(currentLessonIndex + 1); } 
-            else { alert("Курс пройден!"); location.href = 'index.html'; }
+                if (currentTaskIndex < 2) {
+                    setTimeout(() => { currentTaskIndex++; loadTask(); }, 1000);
+                } else {
+                    setTimeout(showCompleteModal, 800);
+                }
+            } else {
+                statusEl.innerHTML = '<span class="text-red-500">❌ WRONG</span>';
+            }
+        } catch (e) {
+            table.classList.add('hidden');
+            errorDiv.innerText = e.message;
+            errorDiv.classList.remove('hidden');
+            statusEl.innerHTML = '<span class="text-red-600">ERROR</span>';
         }
+    }
 
-        init();
-    </script>
+    function showCompleteModal() {
+        confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
+        const modal = document.getElementById('lesson-complete-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); }, 50);
+    }
+
+    function hideModal() {
+        const modal = document.getElementById('lesson-complete-modal');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+
+    function nextLesson() {
+        loadLesson(currentLessonIndex + 1);
+    }
+
+    init();
+</script>
 </body>
 </html>

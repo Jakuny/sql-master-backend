@@ -1,4 +1,5 @@
 package com.jakunya.sqlmaster.CustomClass;
 
-public class Difficulty {
+public enum Difficulty {
+    EASY, MEDIUM, HARD
 }

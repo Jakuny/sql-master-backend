@@ -1,15 +1,15 @@
 package com.jakunya.sqlmaster.controller;
 
 import com.jakunya.sqlmaster.Service.UserService;
+import com.jakunya.sqlmaster.dto.UserResponseDto;
 import com.jakunya.sqlmaster.model.User;
-import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Optional;
+
 
 @RestController
 @AllArgsConstructor
@@ -18,19 +18,17 @@ public class UserController {
     private final UserService service;
 
     @GetMapping
-    public List<User> getAllUsers(){
-        return  service.findAllUsers();
+    public List<UserResponseDto> getAllUsers() {
+        System.out.println("--- DEBUG [5]: Зашел в UserController.getAllUsers ---");
+        List<UserResponseDto> response = service.findAllUsers();
+        System.out.println("--- DEBUG [6]: Сервис вернул в контроллер " + response.size() + " DTO-шек. Отдаю в Spring...");
+        return response;
     }
 
     @GetMapping("/{id}")
     public User findUserById(@PathVariable Long id) {
         return service.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-    }
-
-    @PostMapping
-    public String createUser(@Valid @RequestBody User user){
-        return service.createUser(user);
     }
 
     @PutMapping

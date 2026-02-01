@@ -22,16 +22,24 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserServiceImpl customUserService;
 
-
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
+
         String token = getTokenFromRequest(request);
 
-        if (token != null && jwtService.validateJwtToken(token)) {
-            setCustomUserDetailsToSecurityContexHolderToken(token);
+        try {
+            if (token != null) {
+                boolean isValid = jwtService.validateJwtToken(token);
+                if (isValid) {
+                    setCustomUserDetailsToSecurityContexHolderToken(token);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+
         filterChain.doFilter(request, response);
     }
 

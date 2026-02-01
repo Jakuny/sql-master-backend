@@ -33,7 +33,6 @@ public class JwtService {
         return jwtdto;
     }
 
-    // Метод для ОБНОВЛЕНИЯ (Refresh)
     public JwtAuthDto refreshBaseToken(String email, String refreshToken){
         JwtAuthDto jwtdto = new JwtAuthDto();
         jwtdto.setToken(genJwtToken(email));
