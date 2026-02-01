@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход - SQL Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+
+        /* Градиентный текст логотипа */
+        .gradient-text {
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Анимация появления */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up { animation: fadeUp 0.5s ease-out forwards; }
+
+        /* Спиннер загрузки */
+        .loader {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-left-color: #ffffff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+
+<!-- Декоративные пятна на фоне -->
+<div class="absolute top-0 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+<div class="absolute bottom-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none"></div>
+
+<!-- Карточка входа -->
+<div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-8 animate-fade-up relative z-10">
+
+    <!-- Логотип -->
+    <div class="text-center mb-8">
+        <a href="index.html" class="inline-flex items-center gap-3 select-none mb-2 hover:opacity-80 transition">
+            <div class="bg-blue-600 px-3 py-1 rounded-lg shadow-lg shadow-blue-500/20 font-bold text-white tracking-wide">SQL</div>
+            <span class="font-bold text-xl tracking-tight text-white">Master</span>
+        </a>
+        <h2 class="text-2xl font-bold text-white mt-4">С возвращением!</h2>
+        <p class="text-slate-400 text-sm mt-2">Введите свои данные для входа</p>
+    </div>
+
+    <!-- Сообщение об ошибке -->
+    <div id="error-msg" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center"></div>
+
+    <!-- Форма -->
+    <form id="login-form" class="space-y-5">
+        <div>
+            <label for="username" class="block text-sm font-medium text-slate-300 mb-2">Имя пользователя</label>
+            <input type="text" id="username" required
+                   class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-3 outline-none transition placeholder-slate-500"
+                   placeholder="Ваш логин">
+        </div>
+
+        <div>
+            <label for="password" class="block text-sm font-medium text-slate-300 mb-2">Пароль</label>
+            <input type="password" id="password" required
+                   class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-3 outline-none transition placeholder-slate-500"
+                   placeholder="••••••••">
+        </div>
+
+        <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+            <span>Войти</span>
+            <div id="loading-spinner" class="loader hidden"></div>
+        </button>
+    </form>
+
+    <div class="mt-6 text-center text-sm text-slate-500">
+        Нет аккаунта? <a href="#" class="text-blue-400 hover:text-blue-300 font-semibold transition">Регистрация</a>
+    </div>
+
+    <div class="mt-4 text-center">
+        <a href="index.html" class="text-xs text-slate-600 hover:text-slate-400 transition">← Вернуться на главную</a>
+    </div>
+</div>
+
+<script>
+    const loginForm = document.getElementById('login-form');
+    const errorMsg = document.getElementById('error-msg');
+    const submitBtn = document.getElementById('submit-btn');
+    const spinner = document.getElementById('loading-spinner');
+    const btnText = submitBtn.querySelector('span');
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Сброс ошибок и UI загрузки
+        showError(null);
+        setLoading(true);
+
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const response = await fetch('http://localhost:8080/api/v1/auth/sign-in', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (!response.ok) {
+                // Пытаемся достать текст ошибки из ответа, если есть
+                let message = 'Ошибка входа. Проверьте данные.';
+                try {
+                    const errData = await response.json();
+                    if(errData.message) message = errData.message;
+                } catch(e) {}
+
+                throw new Error(message);
+            }
+
+            const data = await response.json();
+
+            // Проверяем, есть ли токен в ответе (поддерживаем разные форматы)
+            const token = data.token || data.accessToken || data.access_token;
+
+            if (token) {
+                // Успех! Сохраняем токен
+                localStorage.setItem('sql_auth_token', token);
+                localStorage.setItem('sql_username', username); // Сохраним имя для UI
+
+                // Редирект
+                window.location.href = 'index.html';
+            } else {
+                throw new Error("Сервер не вернул токен");
+            }
+
+        } catch (err) {
+            console.error(err);
+            if (err.name === 'TypeError') {
+                showError("Сервер недоступен. Проверьте подключение (localhost:8080).");
+            } else {
+                showError(err.message);
+            }
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    function setLoading(isLoading) {
+        if (isLoading) {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+            spinner.classList.remove('hidden');
+            btnText.innerText = "Вход...";
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            spinner.classList.add('hidden');
+            btnText.innerText = "Войти";
+        }
+    }
+
+    function showError(msg) {
+        if (msg) {
+            errorMsg.innerText = msg;
+            errorMsg.classList.remove('hidden');
+            // Анимация тряски (шейк)
+            loginForm.classList.add('animate-pulse');
+            setTimeout(() => loginForm.classList.remove('animate-pulse'), 200);
+        } else {
+            errorMsg.classList.add('hidden');
+        }
+    }
+</script>
+</body>
+</html>

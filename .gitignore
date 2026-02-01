@@ -48,3 +48,4 @@ nbdist/
 # Application properties with secrets
 application.properties
 application.yml
+/src/main/java/com/jakunya/sqlmaster/security

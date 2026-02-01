@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Master - Sandbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- AlaSQL & Tools -->
+    <script src="https://cdn.jsdelivr.net/npm/alasql@1.7/dist/alasql.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/sql-hint.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .code-font { font-family: 'JetBrains Mono', monospace; }
+        
+        /* --- СТИЛИЗАЦИЯ РЕДАКТОРА (FIX) --- */
+        .CodeMirror { 
+            height: 100% !important; 
+            border-radius: 0.5rem; 
+            font-family: 'JetBrains Mono', monospace; 
+            background-color: #1e293b !important; 
+            color: #e2e8f0 !important; 
+            border: 1px solid #334155; 
+            font-size: 14px;
+        }
+        .CodeMirror-gutters { background-color: #1e293b !important; border-right: 1px solid #334155; }
+        
+        /* --- СТИЛИЗАЦИЯ ПОДСКАЗОК --- */
+        .CodeMirror-hints {
+            background-color: #1e293b !important;
+            border: 1px solid #475569 !important;
+            border-radius: 6px !important;
+            padding: 4px !important;
+            color: #cbd5e1 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+            z-index: 9999 !important;
+        }
+        .CodeMirror-hint {
+            padding: 4px 8px !important;
+            border-radius: 4px !important;
+            color: #94a3b8 !important;
+        }
+        .CodeMirror-hint-active {
+            background-color: #3b82f6 !important;
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        /* Loader */
+        .loader { border: 3px solid rgba(255, 255, 255, 0.1); border-left-color: #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Хедер -->
+    <header class="border-b border-slate-800 bg-slate-900 p-4 flex justify-between items-center shadow-lg z-10">
+        <div class="flex items-center gap-4">
+            <a href="index.html" class="text-slate-400 hover:text-white transition flex items-center gap-1 text-sm font-semibold hover:-translate-x-1 duration-200">
+                <span data-i18n="back_menu">← Меню</span>
+            </a>
+            <div class="h-6 w-px bg-slate-700"></div>
+            <h1 class="text-lg font-bold tracking-tight text-white">SQL <span class="text-green-500">Sandbox</span></h1>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <!-- Выбор языка -->
+            <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-800 text-xs font-bold text-slate-300 border border-slate-700 rounded px-2 py-1 focus:outline-none cursor-pointer">
+                <option value="ru">Русский</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="zh">中文</option>
+            </select>
+
+             <button onclick="document.getElementById('csv-upload').click()" class="text-xs text-blue-400 hover:text-white border border-blue-900/50 hover:border-blue-500 bg-blue-900/10 px-3 py-1.5 rounded transition flex items-center gap-2">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <span data-i18n="sand_csv">CSV</span>
+            </button>
+            <input type="file" id="csv-upload" accept=".csv" class="hidden" onchange="handleFileUpload(this)">
+            
+            <button onclick="clearDatabase()" class="text-xs text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-500 px-3 py-1.5 rounded transition flex items-center gap-2">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <span data-i18n="sand_clear">Сброс</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        <aside class="w-1/4 min-w-[300px] border-r border-slate-800 bg-slate-900/50 flex flex-col z-10">
+            <div class="p-4 border-b border-slate-800"><h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider" data-i18n="sand_struct">Структура БД</h2></div>
+            <div id="schema-container" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar text-sm"></div>
+            
+            <div class="p-4 border-t border-slate-800 bg-slate-900/30">
+                <h3 class="text-[10px] font-bold text-slate-500 uppercase mb-2" data-i18n="sand_viz">Схема (ERD)</h3>
+                <div id="mermaid-chart" class="bg-slate-900 p-2 rounded border border-slate-700/50 min-h-[100px] flex items-center justify-center overflow-hidden text-xs"></div>
+            </div>
+
+            <div class="px-4 pb-2 pt-2 border-t border-slate-800">
+                 <button onclick="generateMockData()" class="w-full bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 text-xs py-2 rounded transition flex items-center justify-center gap-2 mb-2 font-semibold">
+                    <span>🎲</span> <span data-i18n="sand_mock">Демо-данные</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col min-w-0 bg-[#0f172a] relative">
+            <div class="h-1/2 flex flex-col p-4 pb-0">
+                <div class="flex justify-between items-end mb-2">
+                    <label class="text-sm font-semibold text-slate-400" data-i18n="lbl_editor">SQL запрос</label>
+                    <button id="run-btn" onclick="runQuerySequence()" class="bg-green-600 hover:bg-green-500 active:scale-95 text-white px-6 py-2 rounded-md text-sm font-semibold transition-all shadow-lg shadow-green-900/20 flex items-center gap-2">
+                        <span>▶</span> <span data-i18n="btn_run">Выполнить</span>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-hidden rounded-lg shadow-inner border border-slate-700">
+                    <textarea id="editor" class="w-full h-full"></textarea>
+                </div>
+            </div>
+
+            <div class="h-1/2 flex flex-col p-4 relative">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-semibold text-slate-400" data-i18n="lbl_result">Результат</label>
+                        <span id="status-msg" class="text-sm font-bold ml-2"></span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="chart-btn" onclick="showChartModal()" class="hidden text-xs text-purple-400 hover:text-white border border-purple-900 hover:border-purple-500 bg-purple-900/20 px-3 py-1 rounded transition flex items-center gap-2 font-semibold">
+                            📊 <span data-i18n="sand_chart">График</span>
+                        </button>
+                        <button id="export-btn" onclick="exportToCSV()" class="hidden text-xs text-blue-400 hover:text-white border border-blue-900 hover:border-blue-500 bg-blue-900/20 px-3 py-1 rounded transition flex items-center gap-2 font-semibold">
+                            💾 <span data-i18n="sand_dl_csv">CSV</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 bg-slate-900 rounded-lg border border-slate-800 overflow-auto relative">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-800 sticky top-0 z-10"><tr id="result-head" class="text-slate-300"></tr></thead>
+                        <tbody id="result-body" class="divide-y divide-slate-800 text-slate-400 code-font"></tbody>
+                    </table>
+                    <div id="empty-state" class="absolute inset-0 flex items-center justify-center text-slate-600 select-none" data-i18n="empty_state">Здесь будет результат запроса</div>
+                </div>
+            </div>
+            
+            <div id="loader-overlay" class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-40 hidden flex flex-col items-center justify-center">
+                <div class="loader mb-4"></div><div class="text-green-400 font-mono text-sm animate-pulse">Processing...</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Модалка ГРАФИКА -->
+    <div id="chart-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm" onclick="closeChartModal()">
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-700 w-full max-w-4xl h-[80vh] flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-white font-bold text-lg">Visualisation</h3>
+                <button onclick="closeChartModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="flex-1 relative bg-slate-800 rounded-lg p-4">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Подключаем скрипты -->
+    <script src="cheatsheet.js"></script>
+    <script src="i18n.js"></script>
+
+    <script>
+        let cmEditor;
+        let lastResultData = null;
+        let myChart = null;
+
+        mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+        });
+
+        function initApp() {
+            // Инициализация переводов
+            if (typeof initTranslations === 'function') initTranslations();
+
+            // CodeMirror
+            const area = document.getElementById("editor");
+            if (area) {
+                cmEditor = CodeMirror.fromTextArea(area, {
+                    mode: "text/x-sql", theme: "dracula", lineNumbers: true, smartIndent: true,
+                    extraKeys: {"Ctrl-Space": "autocomplete"},
+                    hintOptions: window.SQL_AUTOCOMPLETE_CONFIG || { tables: {} }
+                });
+                cmEditor.on("keyup", function (cm, event) {
+                    if (!cm.state.completionActive && event.keyCode >= 65 && event.keyCode <= 90) { 
+                        CodeMirror.commands.autocomplete(cm, null, {completeSingle: false});
+                    }
+                });
+                cmEditor.setValue("-- Sandbox\nSELECT * FROM ...");
+            }
+
+            renderSchema();
+        }
+
+        // --- ЛОГИКА (CSV, Mock, Chart, Run) ---
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const tableName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, "_");
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split('\n').map(row => row.split(','));
+                if (rows.length < 2) return;
+                const headers = rows[0].map(h => h.trim().replace(/['"]+/g, ''));
+                try {
+                    alasql(`DROP TABLE IF EXISTS ${tableName}`);
+                    let createSql = `CREATE TABLE ${tableName} (`;
+                    createSql += headers.map(h => `${h} STRING`).join(', ');
+                    createSql += `)`;
+                    alasql(createSql);
+                    const data = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        if (rows[i].length === headers.length) {
+                            let obj = {};
+                            rows[i].forEach((val, idx) => {
+                                let v = val.trim().replace(/['"]+/g, '');
+                                if (!isNaN(v) && v !== '') v = Number(v);
+                                obj[headers[idx]] = v;
+                            });
+                            data.push(obj);
+                        }
+                    }
+                    alasql(`INSERT INTO ${tableName} SELECT * FROM ?`, [data]);
+                    renderSchema(); renderMermaid();
+                    cmEditor.setValue(`-- Table ${tableName} loaded (${data.length} rows)\nSELECT * FROM ${tableName} LIMIT 10;`);
+                    runQuerySequence();
+                } catch(err) { alert("Import Error: " + err.message); }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+
+        function generateMockData() {
+            if(!confirm("Create Mock Data (Users, Orders)?")) return;
+            const queries = [
+                "DROP TABLE IF EXISTS Users", "DROP TABLE IF EXISTS Products", "DROP TABLE IF EXISTS Orders",
+                "CREATE TABLE Users (id INT, name STRING, country STRING)", "INSERT INTO Users VALUES (1, 'Ivan', 'Russia'), (2, 'John', 'USA'), (3, 'Maria', 'Germany'), (4, 'Li', 'China')",
+                "CREATE TABLE Products (id INT, title STRING, price INT)", "INSERT INTO Products VALUES (101, 'Laptop', 1200), (102, 'Phone', 800), (103, 'Chair', 150)",
+                "CREATE TABLE Orders (id INT, user_id INT, product_id INT, qty INT)", "INSERT INTO Orders VALUES (1, 1, 101, 1), (2, 2, 102, 2), (3, 1, 103, 5)"
+            ];
+            queries.forEach(q => alasql(q));
+            renderSchema(); renderMermaid();
+            cmEditor.setValue("SELECT Users.name, Products.title, Orders.qty \nFROM Orders \nJOIN Users ON Orders.user_id = Users.id\nJOIN Products ON Orders.product_id = Products.id;");
+            runQuerySequence();
+        }
+
+        function clearDatabase() {
+            if(confirm("Reset DB?")) {
+                alasql('DROP DATABASE IF EXISTS main'); alasql('CREATE DATABASE main'); alasql('USE main');
+                cmEditor.setValue(""); renderSchema(); 
+                document.getElementById('mermaid-chart').innerHTML = '<span class="text-slate-600 text-xs italic">No schema</span>';
+                document.getElementById('result-head').innerHTML = ''; document.getElementById('result-body').innerHTML = '';
+                document.getElementById('empty-state').classList.remove('hidden'); 
+                document.getElementById('export-btn').classList.add('hidden'); document.getElementById('chart-btn').classList.add('hidden');
+                lastResultData = null;
+            }
+        }
+
+        function runQuerySequence() {
+            const loader = document.getElementById('loader-overlay'); const runBtn = document.getElementById('run-btn');
+            loader.classList.remove('hidden'); runBtn.disabled = true; runBtn.classList.add('opacity-50');
+            setTimeout(() => { runQueryCore(); loader.classList.add('hidden'); runBtn.disabled = false; runBtn.classList.remove('opacity-50'); }, 400); 
+        }
+
+        function runQueryCore() {
+            const userSql = cmEditor.getValue();
+            const head = document.getElementById('result-head'); const body = document.getElementById('result-body');
+            const status = document.getElementById('status-msg'); const empty = document.getElementById('empty-state');
+            const exportBtn = document.getElementById('export-btn'); const chartBtn = document.getElementById('chart-btn');
+            head.innerHTML = ''; body.innerHTML = ''; status.innerHTML = '';
+            
+            try {
+                let result = alasql(userSql);
+                empty.classList.add('hidden'); status.innerHTML = '<span class="text-green-400">✅ OK</span>';
+                let dataToShow = result;
+                if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0])) dataToShow = result[result.length - 1];
+                if (Array.isArray(dataToShow) && dataToShow.length > 0 && typeof dataToShow[0] === 'object') {
+                    lastResultData = dataToShow; exportBtn.classList.remove('hidden');
+                    const hasNumbers = Object.values(dataToShow[0]).some(v => typeof v === 'number');
+                    if (hasNumbers) chartBtn.classList.remove('hidden'); else chartBtn.classList.add('hidden');
+                } else { lastResultData = null; exportBtn.classList.add('hidden'); chartBtn.classList.add('hidden'); }
+                renderTable(dataToShow); renderSchema(); renderMermaid();
+            } catch (e) {
+                empty.classList.add('hidden'); exportBtn.classList.add('hidden'); chartBtn.classList.add('hidden');
+                status.innerHTML = '<span class="text-red-400">❌ Error</span>';
+                body.innerHTML = `<tr><td class="p-4 text-red-400 font-mono text-xs bg-red-900/10 border border-red-900/50 rounded">${e.message}</td></tr>`;
+            }
+        }
+
+        function exportToCSV() { if (!lastResultData) return; alasql('SELECT * INTO CSV("sql_export.csv", {headers:true}) FROM ?', [lastResultData]); }
+
+        function renderTable(data) {
+            const head = document.getElementById('result-head'); const body = document.getElementById('result-body');
+            if (typeof data === 'number') { body.innerHTML = `<tr><td class="p-4 text-slate-400 italic">Rows: ${data}</td></tr>`; return; }
+            if (typeof data === 'string') { body.innerHTML = `<tr><td class="p-4 text-slate-400 italic">${data}</td></tr>`; return; }
+            if (!data || data.length === 0) { body.innerHTML = '<tr><td class="p-4 text-slate-500 italic">OK</td></tr>'; return; }
+            const keys = Object.keys(data[0]);
+            keys.forEach(k => { const th = document.createElement('th'); th.className = "px-4 py-3 font-semibold bg-slate-800 border-b border-slate-700 text-green-400 text-xs uppercase tracking-wider"; th.innerText = k; head.appendChild(th); });
+            data.forEach((row) => { const tr = document.createElement('tr'); tr.className = "hover:bg-slate-800/50 transition-colors"; keys.forEach(k => { const td = document.createElement('td'); td.className = "px-4 py-2 border-b border-slate-800/50"; td.innerText = row[k]; tr.appendChild(td); }); body.appendChild(tr); });
+        }
+
+        function renderSchema() {
+            const container = document.getElementById('schema-container'); container.innerHTML = '';
+            const tables = alasql("SHOW TABLES");
+            if (tables.length === 0) { container.innerHTML = `<div class="text-slate-600 text-center text-xs italic mt-4">Empty</div>`; return; }
+            tables.forEach(t => {
+                const tableName = t.tableid;
+                let cols = []; try { cols = alasql(`SHOW COLUMNS FROM ${tableName}`); } catch(e) {}
+                const div = document.createElement('div'); div.className = "bg-slate-800/50 rounded-md p-3 border border-slate-700/50 hover:border-slate-500 transition group";
+                let html = `<div class="font-bold text-slate-300 mb-2 flex items-center justify-between text-xs uppercase tracking-wide"><span class="text-green-400 flex items-center gap-2">▤ ${tableName}</span><button onclick="dropTable('${tableName}')" class="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition">×</button></div><ul class="space-y-1 pl-1">`;
+                if(cols.length > 0) { cols.forEach(c => { html += `<li class="flex justify-between text-[11px] font-mono border-b border-slate-700/30 pb-1 last:border-0"><span class="text-slate-300">${c.columnid}</span> <span class="text-slate-600">${c.type || 'AUTO'}</span></li>`; }); } else { html += `<li class="text-[10px] text-slate-500 italic">No cols</li>`; }
+                html += `</ul>`; div.innerHTML = html; container.appendChild(div);
+            });
+        }
+
+        async function renderMermaid() {
+            const chartDiv = document.getElementById('mermaid-chart'); const tables = alasql("SHOW TABLES");
+            if (tables.length === 0) { chartDiv.innerHTML = `<span class="text-slate-600 text-xs italic">No schema</span>`; return; }
+            let code = "erDiagram\n";
+            for(const t of tables) {
+                const tName = t.tableid; code += `  ${tName} {\n`;
+                let cols = []; try { cols = alasql(`SHOW COLUMNS FROM ${tName}`); } catch(e){}
+                cols.forEach(c => { let type = c.type ? c.type.toLowerCase() : 'string'; if(type==='int') type='int'; code += `    ${type} ${c.columnid}\n`; });
+                code += `  }\n`;
+            }
+            try { chartDiv.innerHTML = ''; const { svg } = await mermaid.render('graphDiv', code); chartDiv.innerHTML = svg; } catch (e) { console.warn(e); }
+        }
+
+        function dropTable(name) { if(confirm(`Del ${name}?`)) { alasql(`DROP TABLE ${name}`); renderSchema(); renderMermaid(); } }
+
+        function showChartModal() {
+            if (!lastResultData || lastResultData.length === 0) return;
+            document.getElementById('chart-modal').classList.remove('hidden');
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const keys = Object.keys(lastResultData[0]);
+            let labelKey = keys[0]; let valueKey = keys.find(k => typeof lastResultData[0][k] === 'number') || keys[1];
+            const labels = lastResultData.map(row => row[labelKey]);
+            const data = lastResultData.map(row => row[valueKey]);
+            if (myChart) myChart.destroy();
+            const type = labels.length > 20 ? 'line' : 'bar';
+            myChart = new Chart(ctx, {
+                type: type,
+                data: { labels: labels, datasets: [{ label: valueKey, data: data, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: '#3b82f6', borderWidth: 1 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#cbd5e1' } } }, scales: { y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } } } }
+            });
+        }
+        function closeChartModal() { document.getElementById('chart-modal').classList.add('hidden'); }
+    </script>
+</body>
+</html>

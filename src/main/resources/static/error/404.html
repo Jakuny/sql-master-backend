@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - SQL Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .gradient-text {
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden selection:bg-blue-500/30">
+
+    <!-- Фоновые пятна -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="relative z-10 max-w-2xl w-full text-center">
+        
+        <!-- Большая цифра 404 -->
+        <h1 class="text-[120px] font-black leading-none tracking-tighter opacity-20 select-none animate-float">
+            404
+        </h1>
+
+        <div class="relative -mt-16">
+            <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
+                Данные <span class="gradient-text">не найдены</span>
+            </h2>
+            
+            <!-- Терминал с ошибкой -->
+            <div class="bg-slate-900 border border-slate-700 rounded-xl p-6 text-left shadow-2xl max-w-lg mx-auto transform transition hover:scale-[1.02] duration-300">
+                <div class="flex gap-2 mb-4 border-b border-slate-800 pb-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+                <div class="font-mono text-sm space-y-2">
+                    <div class="text-slate-400">
+                        <span class="text-blue-400">SELECT</span> * <span class="text-blue-400">FROM</span> pages 
+                        <span class="text-blue-400">WHERE</span> url = <span class="text-green-400">'current_url'</span>;
+                    </div>
+                    <div class="text-slate-500 italic border-l-2 border-red-500 pl-3 mt-2">
+                        > Empty set (0.00 sec)<br>
+                        > Error 404: Page not found
+                    </div>
+                    <div class="animate-pulse text-blue-400 mt-2">_</div>
+                </div>
+            </div>
+
+            <p class="text-slate-400 mt-8 mb-8 text-lg">
+                Похоже, вы запросили несуществующую таблицу или сбились с пути.
+            </p>
+
+            <a href="/" class="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition shadow-lg shadow-blue-500/20 group">
+                <svg class="w-5 h-5 group-hover:-translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Вернуться на главную
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>
