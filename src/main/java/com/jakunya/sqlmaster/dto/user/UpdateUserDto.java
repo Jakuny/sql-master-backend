@@ -1,4 +1,4 @@
-package com.jakunya.sqlmaster.dto;
+package com.jakunya.sqlmaster.dto.user;
 
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;

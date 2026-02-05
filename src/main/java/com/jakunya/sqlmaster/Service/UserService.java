@@ -1,6 +1,11 @@
 package com.jakunya.sqlmaster.Service;
 
-import com.jakunya.sqlmaster.dto.*;
+import com.jakunya.sqlmaster.dto.jwt.JwtAuthDto;
+import com.jakunya.sqlmaster.dto.jwt.RefreshTokenDto;
+import com.jakunya.sqlmaster.dto.user.UpdateUserDto;
+import com.jakunya.sqlmaster.dto.user.UserCredDto;
+import com.jakunya.sqlmaster.dto.user.UserProfileDto;
+import com.jakunya.sqlmaster.dto.user.UserResponseDto;
 import com.jakunya.sqlmaster.model.User;
 import com.jakunya.sqlmaster.repository.UserRepository;
 import com.jakunya.sqlmaster.security.jwt.JwtService;
@@ -12,6 +17,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +28,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     final UserRepository repository;
+    private final LeaderboardService leaderboardService;
 
 
     public User findUserByEmail(String email) {
@@ -171,7 +179,7 @@ public class UserService {
     public void addExp(User user, int amount) {
         user.addXp(amount);
         repository.save(user);
+        leaderboardService.updateUserScore(user.getUsername(), (double) user.getXp());
     }
-
 
 }

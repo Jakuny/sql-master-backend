@@ -1,20 +1,20 @@
 package com.jakunya.sqlmaster.Service;
 
 import com.jakunya.sqlmaster.CustomClass.Difficulty;
-import com.jakunya.sqlmaster.dto.TaskDetailDto;
-import com.jakunya.sqlmaster.dto.TaskPreviewDto;
-import com.jakunya.sqlmaster.dto.TaskRequestDto;
+import com.jakunya.sqlmaster.dto.task.TaskDetailDto;
+import com.jakunya.sqlmaster.dto.task.TaskPreviewDto;
+import com.jakunya.sqlmaster.dto.task.TaskRequestDto;
 import com.jakunya.sqlmaster.model.Task;
 import com.jakunya.sqlmaster.model.User;
 import com.jakunya.sqlmaster.repository.TaskRepository;
 import com.jakunya.sqlmaster.repository.UserRepository;
-import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Date;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -25,6 +25,7 @@ public class TaskService {
     private final TaskRepository repository;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final SandBoxService sandBoxService;
 
     public Task correctGetTaskById(Long id) {
          return repository.findById(id)
@@ -72,23 +73,17 @@ public class TaskService {
     public String checkTask(Long id, String userQuery, String email) {
         Task task = correctGetTaskById(id);
         User user = userService.findUserByEmail(email);
-        String normalizedCorrectQuery = task.getCorrectQuery().trim().toLowerCase();
-        String correctUserQuery = userQuery.toLowerCase(Locale.ROOT)
-                .trim();
-        if (user.getSolvedTasks().contains(task)) {
-            if (correctUserQuery.equals(normalizedCorrectQuery)){
-                return "result:" + true;
-            } else {
-                return "result:" + false;
-            }
-        }
-        else if (correctUserQuery.equals(normalizedCorrectQuery)){
+        boolean query = sandBoxService.compareResults(task.getInitScript(), userQuery, task.getCorrectQuery());
+        if (!query) {
+            return ("result:" + false);
+        } else if ((user.getSolvedTasks().contains(task))) {
+            return ("result:" + true);
+        } else {
             userService.addExp(user, task.getXpReward());
             user.getSolvedTasks().add(task);
+            user.setLastCorrectTask(LocalDateTime.now());
             userRepository.save(user);
             return ("result:" + true + ". added "  + task.getXpReward() + "xp" );
-        } else {
-            return ("result:" + false);
         }
     }
 

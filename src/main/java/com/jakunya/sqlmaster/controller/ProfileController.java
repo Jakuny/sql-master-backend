@@ -2,8 +2,8 @@ package com.jakunya.sqlmaster.controller;
 
 import com.jakunya.sqlmaster.Service.FileStorageService;
 import com.jakunya.sqlmaster.Service.UserService;
-import com.jakunya.sqlmaster.dto.UpdateUserDto;
-import com.jakunya.sqlmaster.dto.UserProfileDto;
+import com.jakunya.sqlmaster.dto.user.UpdateUserDto;
+import com.jakunya.sqlmaster.dto.user.UserProfileDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

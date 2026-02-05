@@ -2,9 +2,9 @@ package com.jakunya.sqlmaster.controller;
 
 
 import com.jakunya.sqlmaster.Service.UserService;
-import com.jakunya.sqlmaster.dto.JwtAuthDto;
-import com.jakunya.sqlmaster.dto.RefreshTokenDto;
-import com.jakunya.sqlmaster.dto.UserCredDto;
+import com.jakunya.sqlmaster.dto.jwt.JwtAuthDto;
+import com.jakunya.sqlmaster.dto.jwt.RefreshTokenDto;
+import com.jakunya.sqlmaster.dto.user.UserCredDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

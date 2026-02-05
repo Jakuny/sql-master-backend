@@ -1,13 +1,14 @@
 package com.jakunya.sqlmaster.controller;
 
 import com.jakunya.sqlmaster.Service.TaskService;
-import com.jakunya.sqlmaster.dto.TaskDetailDto;
-import com.jakunya.sqlmaster.dto.TaskPreviewDto;
-import com.jakunya.sqlmaster.dto.TaskRequestDto;
+import com.jakunya.sqlmaster.dto.task.TaskDetailDto;
+import com.jakunya.sqlmaster.dto.task.TaskPreviewDto;
+import com.jakunya.sqlmaster.dto.task.TaskRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.sql.SQLException;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -27,7 +28,7 @@ public class TaskController {
     }
 
     @PostMapping("/{id}")
-    public String checkTask(@PathVariable long id, @RequestBody String userQuery, Principal principal){
+    public String checkTask(@PathVariable long id, @RequestBody String userQuery, Principal principal) {
         return service.checkTask(id, userQuery, principal.getName());
     }
 

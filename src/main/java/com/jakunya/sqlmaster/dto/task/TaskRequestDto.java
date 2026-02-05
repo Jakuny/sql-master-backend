@@ -1,4 +1,4 @@
-package com.jakunya.sqlmaster.dto;
+package com.jakunya.sqlmaster.dto.task;
 
 import com.jakunya.sqlmaster.CustomClass.Difficulty; 
 import lombok.Data;

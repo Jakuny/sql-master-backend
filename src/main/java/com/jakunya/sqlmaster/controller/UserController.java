@@ -1,7 +1,7 @@
 package com.jakunya.sqlmaster.controller;
 
 import com.jakunya.sqlmaster.Service.UserService;
-import com.jakunya.sqlmaster.dto.UserResponseDto;
+import com.jakunya.sqlmaster.dto.user.UserResponseDto;
 import com.jakunya.sqlmaster.model.User;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;

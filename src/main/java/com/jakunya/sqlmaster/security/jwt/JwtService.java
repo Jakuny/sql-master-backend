@@ -1,6 +1,6 @@
 package com.jakunya.sqlmaster.security.jwt;
 
-import com.jakunya.sqlmaster.dto.JwtAuthDto;
+import com.jakunya.sqlmaster.dto.jwt.JwtAuthDto;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;

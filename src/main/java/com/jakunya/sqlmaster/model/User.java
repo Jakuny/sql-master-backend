@@ -9,6 +9,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.sql.Date;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Getter
@@ -40,6 +42,7 @@ public class User {
     private int xp = 0;
     private int lvl = 0;
     private int daysStreak = 0;
+    private LocalDateTime lastCorrectTask;
     @ManyToMany
     @JoinTable(
             name = "user_solved_tasks", // Имя новой таблицы-связки в БД

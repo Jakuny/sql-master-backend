@@ -1,4 +1,4 @@
-package com.jakunya.sqlmaster.dto;
+package com.jakunya.sqlmaster.dto.jwt;
 
 import lombok.Data;
 

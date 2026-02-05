@@ -52,7 +52,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder getPasswordEncoder(){
-        return new BCryptPasswordEncoder(4);
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
