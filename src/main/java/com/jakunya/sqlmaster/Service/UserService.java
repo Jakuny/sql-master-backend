@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,6 +38,7 @@ public class UserService {
 
     public JwtAuthDto signIn(UserCredDto loginDto) {
         User user = findByCred(loginDto);
+        updateLastActivity(user.getEmail());
         return jwtService.genJwtAuthToken(user.getEmail());
     }
 
@@ -48,6 +48,7 @@ public class UserService {
             throw new RuntimeException("Bad Token error");
         }
         String email = jwtService.getEmailFromToken(requestRefreshToken);
+        updateLastActivity(email);
         return jwtService.refreshBaseToken(email, requestRefreshToken);
     }
 
@@ -181,6 +182,24 @@ public class UserService {
         user.addXp(amount);
         repository.save(user);
         leaderboardService.updateUserScore(user.getUsername(), (double) user.getXp());
+    }
+
+    public void updateStreak(User user) {
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDate lastDate = user.getLastCorrectTask();
+
+        if (lastDate.equals(yesterday)) {
+            user.setDaysStreak(user.getDaysStreak() + 1);
+        } else if (lastDate.isBefore(yesterday)) {
+            user.setDaysStreak(1);
+        }
+        user.setLastActivity(today);
+    }
+
+    public void updateLastActivity(String email) {
+        User user = findUserByEmail(email);
+        user.setLastActivity(LocalDate.now());
     }
 
 }

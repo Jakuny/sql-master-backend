@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -80,8 +81,9 @@ public class TaskService {
             return ("result:" + true);
         } else {
             userService.addExp(user, task.getXpReward());
+            userService.updateStreak(user);
             user.getSolvedTasks().add(task);
-            user.setLastCorrectTask(LocalDateTime.now());
+            user.setLastCorrectTask(LocalDate.now());
             userRepository.save(user);
             return ("result:" + true + ". added "  + task.getXpReward() + "xp" );
         }
