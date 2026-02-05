@@ -6,7 +6,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>4.0.1</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
     <groupId>com.jakunya</groupId>
     <artifactId>sqlmaster</artifactId>
@@ -76,18 +76,18 @@
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.12.6</version> <!-- Или более новая версия -->
+            <version>0.12.6</version>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
-            <version>0.12.6</version> <!-- Та же версия, что и у jjwt-api -->
+            <version>0.12.6</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId> <!-- или jjwt-gson -->
-            <version>0.12.6</version> <!-- Та же версия, что и у jjwt-api -->
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>

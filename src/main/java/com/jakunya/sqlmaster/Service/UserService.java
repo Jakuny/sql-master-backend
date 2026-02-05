@@ -105,6 +105,7 @@ public class UserService {
             user.setPassword(passwordEncoder.encode(userCredDto.getPassword()));
             user.setRole("USER");
             user.setXp(0);
+            user.setLastActivity(LocalDate.now());
             repository.save(user);
             return "User successfully registered";
         }
