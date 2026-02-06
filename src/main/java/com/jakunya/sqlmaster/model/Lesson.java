@@ -22,4 +22,5 @@ public class Lesson {
     private String content;
     @OneToMany(mappedBy = "lesson")
     private List<Task> tasks;
+    private int seasonXp;
 }
