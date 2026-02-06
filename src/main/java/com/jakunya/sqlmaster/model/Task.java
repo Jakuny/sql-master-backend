@@ -1,6 +1,7 @@
 package com.jakunya.sqlmaster.model;
 
 import com.jakunya.sqlmaster.CustomClass.Difficulty;
+import com.jakunya.sqlmaster.CustomClass.TaskType;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -32,6 +33,10 @@ public class Task {
     private String correctQuery;
     @Column(name = "init_Script",length = 2000)
     private String initScript;
+    private TaskType type;
+    @ManyToOne
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
     @ManyToMany
     @JoinTable(
             name = "user_solved_tasks",

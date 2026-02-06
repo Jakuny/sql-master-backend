@@ -30,9 +30,4 @@ public class LeaderboardService {
                 })
                 .collect(Collectors.toList());
     }
-
-
-
-
-
 }
