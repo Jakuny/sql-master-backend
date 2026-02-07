@@ -49,15 +49,15 @@ public class JwtService {
                     .getPayload();
             return true;
         } catch (ExpiredJwtException expEx){
-            LOGGER.error("Expired JwtException ", expEx);
+            LOGGER.warn("Expired JwtException ", expEx);
         } catch (UnsupportedJwtException expEx){
-            LOGGER.error("Unsupported JwtException ", expEx);
+            LOGGER.warn("Unsupported JwtException ", expEx);
         } catch (MalformedJwtException expEx){
-            LOGGER.error("Malformed JwtException ", expEx);
+            LOGGER.warn("Malformed JwtException ", expEx);
         } catch (SecurityException expEx) {
-            LOGGER.error("Security Exception ", expEx);
+            LOGGER.warn("Security Exception ", expEx);
         } catch (Exception expEx){
-            LOGGER.error("Invalid Token ", expEx);
+            LOGGER.warn("Invalid Token ", expEx);
         }
         return false;
     }

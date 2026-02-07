@@ -5,6 +5,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class TaskDetailDto {
     private long id;
@@ -14,4 +16,5 @@ public class TaskDetailDto {
     private Difficulty difficulty;
     private int xpReward;
     private String initScript;
+    private List<String> scrambleWords;
 }

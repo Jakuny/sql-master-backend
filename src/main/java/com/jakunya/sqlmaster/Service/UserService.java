@@ -187,14 +187,19 @@ public class UserService {
     public void updateStreak(User user) {
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
+        if (user.getLastCorrectTask() == null) {
+            user.setDaysStreak(1);
+            return;
+        }
+
         LocalDate lastDate = user.getLastCorrectTask();
 
-        if (lastDate.equals(yesterday)) {
+        if (lastDate.isEqual(today)) {
+        } else if (lastDate.equals(yesterday)) {
             user.setDaysStreak(user.getDaysStreak() + 1);
         } else if (lastDate.isBefore(yesterday)) {
             user.setDaysStreak(1);
         }
-        user.setLastActivity(today);
     }
 
     public void updateLastActivity(String email) {

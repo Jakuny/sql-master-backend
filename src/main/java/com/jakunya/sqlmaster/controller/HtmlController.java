@@ -19,5 +19,12 @@ public class HtmlController {
     @GetMapping("/static")
     public String Index(){return  "forward:/index.html"; }
 
+    @GetMapping("/lessons")
+    public String lessons(){return  "forward:/lessons.html";}
+
+    @GetMapping("/login")
+    public String login() {
+        return "forward:/login.html";
+    }
 
 }

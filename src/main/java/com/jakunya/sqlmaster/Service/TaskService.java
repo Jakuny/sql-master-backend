@@ -1,6 +1,7 @@
 package com.jakunya.sqlmaster.Service;
 
 import com.jakunya.sqlmaster.CustomClass.Difficulty;
+import com.jakunya.sqlmaster.CustomClass.TaskType;
 import com.jakunya.sqlmaster.dto.task.TaskDetailDto;
 import com.jakunya.sqlmaster.dto.task.TaskPreviewDto;
 import com.jakunya.sqlmaster.dto.task.TaskRequestDto;
@@ -13,8 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 @AllArgsConstructor
@@ -31,13 +35,22 @@ public class TaskService {
 
     public TaskDetailDto toDtoDet(Task task) {
         TaskDetailDto dto = new TaskDetailDto();
-        dto.setDifficulty(task.getDifficulty());
         dto.setId(task.getId());
         dto.setTitle(task.getTitle());
-        dto.setXpReward(task.getXpReward());
         dto.setDescription(task.getDescription());
-        dto.setInitScript(task.getInitScript());
-        return dto;
+        if(task.getType() == TaskType.SCRAMBLE) {
+            List<String>scrambleWords = new java.util.ArrayList<>(Arrays.stream(task.getCorrectQuery()
+                            .split("(?=[,.!;])|(?<=[,.!;])|\\s+"))
+                    .toList());
+            Collections.shuffle(scrambleWords);
+            dto.setScrambleWords(scrambleWords);
+            return dto;
+        } else {
+            dto.setDifficulty(task.getDifficulty());
+            dto.setXpReward(task.getXpReward());
+            dto.setInitScript(task.getInitScript());
+            return dto;
+        }
     }
 
     public TaskPreviewDto toDtoPre(Task task) {
@@ -50,10 +63,10 @@ public class TaskService {
     }
 
     public List<TaskPreviewDto> getAllTasks() {
-        List<Task> taskDB = repository.findAll();
+        List<Task> taskDB = repository.findAllByLessonIsNull();
         List<TaskPreviewDto> dtos = taskDB.stream()
                 .map(this::toDtoPre)
-                .collect(Collectors.toList());
+                .collect(toList());
         if (dtos.isEmpty()) {
             System.out.println("Task is empty");
         }
@@ -80,6 +93,8 @@ public class TaskService {
             userService.updateStreak(user);
             user.getSolvedTasks().add(task);
             user.setLastCorrectTask(LocalDate.now());
+            System.out.println("--- DEBUG SAVE: Пытаюсь сохранить юзера: " + user.getEmail());
+            System.out.println("--- DEBUG SAVE: Дата для записи: " + user.getLastCorrectTask());
             userRepository.save(user);
             return ("result:" + true + ". added "  + task.getXpReward() + "xp" );
         }

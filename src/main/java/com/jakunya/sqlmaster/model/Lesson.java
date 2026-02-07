@@ -20,7 +20,7 @@ public class Lesson {
     private int orderIndex;
     @Column(columnDefinition = "TEXT")
     private String content;
-    @OneToMany(mappedBy = "lesson")
+    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks;
     private int seasonXp;
 }
