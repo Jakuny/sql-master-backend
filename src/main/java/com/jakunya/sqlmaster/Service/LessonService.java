@@ -2,6 +2,9 @@ package com.jakunya.sqlmaster.Service;
 
 import com.jakunya.sqlmaster.CustomClass.TaskType;
 import com.jakunya.sqlmaster.dto.lessons.LessonCreateDto;
+import com.jakunya.sqlmaster.dto.lessons.LessonDetailDto;
+import com.jakunya.sqlmaster.dto.lessons.LessonPreviewDto;
+import com.jakunya.sqlmaster.dto.task.TaskDetailDto;
 import com.jakunya.sqlmaster.dto.task.TaskRequestDto;
 import com.jakunya.sqlmaster.model.Lesson;
 import com.jakunya.sqlmaster.model.Task;
@@ -17,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LessonService {
     private final LessonRepository repository;
+    private final TaskService taskService;
 
     @Transactional
     public String createLesson(LessonCreateDto dto){
@@ -42,5 +46,51 @@ public class LessonService {
         lesson.setTasks(tasks);
         repository.save(lesson);
         return "Lesson saved";
+    }
+
+    public LessonPreviewDto toPreviewDto(Lesson lesson) {
+        LessonPreviewDto dto = new LessonPreviewDto();
+        dto.setId(lesson.getId());
+        dto.setOrderIndex(lesson.getOrderIndex());
+        dto.setTitle(lesson.getTitle());
+        dto.setSeasonXp(lesson.getSeasonXp());
+        return dto;
+    }
+
+    public List<LessonPreviewDto> getAllLessons(){
+        List<Lesson> lessons = repository.findAll();
+        List<LessonPreviewDto> dtos = new ArrayList<>();
+
+        for (Lesson lesson: lessons) {
+            LessonPreviewDto dto = new LessonPreviewDto();
+            dto.setId(lesson.getId());
+            dto.setTitle(lesson.getTitle());
+            dto.setSeasonXp(lesson.getSeasonXp());
+            dto.setOrderIndex(dto.getOrderIndex());
+            dtos.add(dto);
+        }
+        return dtos;
+    }
+
+    public LessonDetailDto toDetailDto(Lesson lesson) {
+        LessonDetailDto dto = new LessonDetailDto();
+        dto.setId(lesson.getId());
+        dto.setTitle(lesson.getTitle());
+        dto.setContent(lesson.getContent());
+        dto.setSeasonXp(lesson.getSeasonXp());
+        dto.setOrderIndex(lesson.getOrderIndex());
+
+        List<TaskDetailDto> tasks = new ArrayList<>();
+
+        for (int i = 0; i < lesson.getTasks().size(); i++) {
+            tasks.add(taskService.toDtoDet(lesson.getTasks().get(i)));
+        }
+        dto.setTaskDetailDtos(tasks);
+        return dto;
+    }
+
+    public LessonDetailDto getLessonById(long id) {
+        Lesson lesson = repository.getLessonById(id);
+        return toDetailDto(lesson);
     }
 }
