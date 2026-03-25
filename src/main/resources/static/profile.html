@@ -1,188 +1,157 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQL Master - Профиль</title>
+    <!-- Title будет установлен динамически через JS -->
+    <title>SQL Master - Profile</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.2/vanilla-tilt.min.js"></script>
+
+    <!-- Подключаем общие стили -->
+    <link rel="stylesheet" href="/css/style.css">
+
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
-
-        .bg-card { background-color: #1e293b; }
-        .rank-gradient { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); }
-        .logo-glow { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-up { animation: fadeUp 0.6s ease-out forwards; }
-
-        .loader {
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-left-color: #3b82f6;
-            border-radius: 50%;
-            width: 40px; height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Стили для модалки и инпутов */
-        .modal-bg { background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
-        .input-dark { background: #0f172a; border: 1px solid #334155; color: white; transition: 0.2s; }
-        .input-dark:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
-
-        /* Скроллбар */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        /* Локальные стили для специфичных элементов профиля */
+        .modal-bg { background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); }
+        .input-dark { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: var(--text-main); transition: 0.3s; }
+        .input-dark:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
     </style>
 </head>
-<body class="min-h-screen flex flex-col overflow-x-hidden">
+<body class="min-h-screen flex flex-col overflow-x-hidden selection:bg-blue-500/30">
 
-<!-- ХЕДЕР -->
-<header class="border-b border-slate-800 bg-slate-900 p-4 sticky top-0 z-50">
-    <div class="max-w-6xl w-full mx-auto flex justify-between items-center">
-        <a href="/" class="font-bold text-xl tracking-tight text-white flex items-center gap-3 select-none group">
-            <div class="bg-blue-600 px-3 py-1 rounded-lg logo-glow tracking-wide text-white group-hover:scale-105 transition-transform duration-300">SQL</div>
-            <span class="group-hover:text-blue-400 transition-colors">Master</span>
-        </a>
+<!-- ХЕДЕР ИЗ КОМПОНЕНТА -->
+<header id="main-header" class="fixed top-0 w-full bg-theme-nav z-50 transition-colors duration-500"></header>
 
-        <div class="flex items-center gap-4">
-            <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-800 text-xs font-bold text-slate-300 border border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-500 cursor-pointer">
-                <option value="ru">Русский</option>
-                <option value="en">English</option>
-                <option value="es">Español</option>
-                <option value="zh">中文</option>
-            </select>
-            <button id="logout-btn" onclick="logout()" class="hidden text-xs font-black uppercase tracking-widest text-red-500 border border-red-900/30 px-4 py-2 rounded-xl hover:bg-red-500/10 transition-all">
-                <span data-i18n="btn_logout">Выйти</span>
-            </button>
+<main class="flex-1 flex flex-col items-center pt-32 pb-20 px-4 relative overflow-hidden">
+
+    <!-- Фоновые неоновые пятна -->
+    <div class="absolute top-[10%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+
+    <div class="max-w-5xl w-full relative z-10">
+
+        <!-- Лоадер -->
+        <div id="loader" class="flex flex-col items-center justify-center py-32 gap-4">
+            <div class="loader !w-12 !h-12 !border-4"></div>
+            <span class="text-sm font-bold text-theme-muted uppercase tracking-widest animate-pulse" data-i18n="loading_text">Loading...</span>
         </div>
-    </div>
-</header>
 
-<!-- Основной контент -->
-<main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-8 relative">
+        <!-- Ошибка -->
+        <div id="error-container" class="hidden flex-col items-center justify-center py-20 text-center animate-fade-up">
+            <div class="text-7xl mb-6 opacity-80 animate-bounce">👽</div>
+            <h2 class="text-4xl font-black text-theme-main uppercase tracking-tight mb-4" data-i18n="profile_not_found">Profile Not Found</h2>
+            <p class="text-theme-muted mb-8 font-medium" data-i18n="profile_not_found_desc">Maybe the user changed their nickname or has been deleted.</p>
+            <a href="/" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition shadow-lg shadow-blue-500/20" data-i18n="btn_home">Go Home</a>
+        </div>
 
-    <!-- Лоадер -->
-    <div id="loader" class="absolute inset-0 flex items-center justify-center bg-[#0f172a] z-10">
-        <div class="loader"></div>
-    </div>
+        <!-- Контент профиля -->
+        <div id="profile-content" class="hidden animate-fade-up space-y-8">
 
-    <!-- Ошибка -->
-    <div id="error-container" class="hidden flex flex-col items-center justify-center h-64 text-center">
-        <div class="text-6xl mb-4">👽</div>
-        <h2 class="text-2xl font-black text-white uppercase tracking-tight" data-i18n="profile_not_found">Профиль не найден</h2>
-        <a href="/" class="mt-6 px-6 py-2 bg-slate-800 rounded-xl text-blue-400 font-bold hover:bg-slate-700 transition" data-i18n="btn_home">На главную</a>
-    </div>
+            <!-- 1. ГЛАВНАЯ КАРТОЧКА ПРОФИЛЯ -->
+            <div class="bg-theme-card rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden shadow-2xl" data-tilt data-tilt-max="2" data-tilt-speed="400">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-    <!-- Контент профиля -->
-    <div id="profile-content" class="hidden animate-fade-up space-y-6">
-
-        <!-- Карточка пользователя -->
-        <div class="bg-card rounded-[2rem] p-8 border border-slate-700 relative overflow-hidden shadow-2xl">
-            <div class="absolute top-0 left-0 w-full h-32 rank-gradient opacity-10"></div>
-
-            <div class="relative flex flex-col md:flex-row items-center md:items-end gap-8 mt-4">
-                <!-- Аватар -->
-                <div class="relative group">
-                    <div id="user-avatar-container" class="w-32 h-32 rounded-3xl bg-slate-800 border-4 border-slate-900 flex items-center justify-center shadow-2xl z-10 overflow-hidden">
-                        <!-- Сюда JS вставит <img> или текст -->
-                        <span id="user-avatar-text" class="text-5xl font-black text-white uppercase select-none">?</span>
+                <div class="relative flex flex-col md:flex-row items-center md:items-end gap-8 z-10">
+                    <!-- Аватар -->
+                    <div class="relative group">
+                        <div id="user-avatar-container" class="w-36 h-36 rounded-[2rem] bg-slate-800 border-4 border-slate-700/50 flex items-center justify-center shadow-[0_0_40px_rgba(59,130,246,0.2)] overflow-hidden transition-transform duration-500 group-hover:scale-105 group-hover:border-blue-500/50">
+                            <span id="user-avatar-text" class="text-6xl font-black text-white uppercase select-none">?</span>
+                        </div>
+                        <button id="btn-settings" onclick="openSettings()" class="hidden absolute -bottom-2 -right-2 w-12 h-12 bg-slate-800 hover:bg-blue-600 text-white rounded-2xl shadow-xl border-2 border-slate-700 flex items-center justify-center transition-all duration-300 hover:scale-110 z-20 group" title="Settings">
+                            <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                        </button>
                     </div>
 
-                    <!-- Кнопка настроек (видна только владельцу) -->
-                    <button id="btn-settings" onclick="openSettings()" class="hidden absolute bottom-0 right-0 w-10 h-10 bg-slate-700 hover:bg-blue-600 text-white rounded-xl shadow-lg border-2 border-slate-900 flex items-center justify-center transition-all z-20" title="Настройки">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    </button>
-                </div>
-
-                <div class="flex-1 text-center md:text-left mb-2">
-                    <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2">
-                        <h1 class="text-4xl font-black text-white tracking-tight" id="user-name">...</h1>
-                        <span class="inline-block px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-500/20 w-fit mx-auto md:mx-0">
+                    <div class="flex-1 text-center md:text-left mb-2">
+                        <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2">
+                            <h1 class="text-4xl font-black text-theme-main tracking-tight" id="user-name">...</h1>
+                            <span class="inline-block px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-500/20 w-fit mx-auto md:mx-0" data-i18n="rank_sql_warrior">
                                 SQL Warrior
                             </span>
+                        </div>
+                        <p class="text-theme-muted font-mono text-sm" id="user-handle">@...</p>
                     </div>
-                    <p class="text-slate-500 font-mono text-sm" id="user-handle">@...</p>
                 </div>
             </div>
-        </div>
 
-        <!-- Статистика -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- XP -->
-            <div class="bg-card p-6 rounded-3xl border border-slate-800 shadow-lg group hover:border-blue-500/30 transition-all duration-300">
-                <div class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4" data-i18n="ph_experience">Experience</div>
-                <div class="flex items-end gap-2">
-                    <span class="text-5xl font-black text-white tracking-tighter" id="stat-xp">0</span>
-                    <span class="text-blue-500 font-bold mb-1">XP</span>
+            <!-- 2. СТАТИСТИКА -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-theme-card p-6 rounded-[2rem] shadow-lg group hover:border-blue-500/30 transition-all duration-300" data-tilt data-tilt-max="5">
+                    <div class="text-[10px] font-black text-theme-muted uppercase tracking-[0.2em] mb-4" data-i18n="ph_experience">Experience</div>
+                    <div class="flex items-end gap-2">
+                        <span class="text-5xl font-black gradient-text tracking-tighter" id="stat-xp">0</span>
+                        <span class="text-blue-500 font-bold mb-1">XP</span>
+                    </div>
+                </div>
+                <div class="bg-theme-card p-6 rounded-[2rem] shadow-lg group hover:border-purple-500/30 transition-all duration-300" data-tilt data-tilt-max="5">
+                    <div class="text-[10px] font-black text-theme-muted uppercase tracking-[0.2em] mb-4" data-i18n="ph_level">Rank Level</div>
+                    <div class="text-5xl font-black text-theme-main tracking-tighter mb-4" id="stat-lvl">0</div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                        <div id="level-progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000 ease-out" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between mt-2 text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                        <span data-i18n="progress_text">Progress</span>
+                        <span id="xp-remaining">0/100</span>
+                    </div>
+                </div>
+                <div class="bg-theme-card p-6 rounded-[2rem] shadow-lg group hover:border-orange-500/30 transition-all duration-300" data-tilt data-tilt-max="5">
+                    <div class="text-[10px] font-black text-theme-muted uppercase tracking-[0.2em] mb-4" data-i18n="ph_streak">Activity Streak</div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-5xl font-black text-theme-main tracking-tighter" id="stat-streak">0</span>
+                        <div class="text-3xl animate-pulse">🔥</div>
+                    </div>
                 </div>
             </div>
-            <!-- Level -->
-            <div class="bg-card p-6 rounded-3xl border border-slate-800 shadow-lg group hover:border-purple-500/30 transition-all duration-300">
-                <div class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4" data-i18n="ph_level">Rank Level</div>
-                <div class="text-5xl font-black text-white tracking-tighter mb-4" id="stat-lvl">0</div>
-                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
-                    <div id="level-progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000 ease-out" style="width: 0%"></div>
-                </div>
-                <div class="flex justify-between mt-2 text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                    <span>Progress</span>
-                    <span id="xp-remaining">0/100</span>
-                </div>
-            </div>
-            <!-- Streak -->
-            <div class="bg-card p-6 rounded-3xl border border-slate-800 shadow-lg group hover:border-orange-500/30 transition-all duration-300">
-                <div class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4" data-i18n="ph_streak">Activity Streak</div>
-                <div class="flex items-center gap-4">
-                    <span class="text-5xl font-black text-white tracking-tighter" id="stat-streak">0</span>
-                    <div class="text-2xl animate-pulse">🔥</div>
-                </div>
-            </div>
-        </div>
 
+            <!-- 3. ДОСТИЖЕНИЯ (ЗАДЕЛ НА БУДУЩЕЕ) -->
+            <div>
+                <h2 class="text-2xl font-black text-theme-main tracking-tight mb-4" data-i18n="achievements_title">Achievements</h2>
+                <div class="bg-theme-card rounded-[2rem] p-12 text-center flex flex-col items-center justify-center min-h-[200px] relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black/30 backdrop-blur-sm z-10 flex items-center justify-center">
+                        <div class="bg-black/80 text-white px-5 py-2 rounded-xl font-black uppercase tracking-widest text-xs flex items-center gap-2 border border-slate-700">🔒 <span data-i18n="achievements_wip">In Development</span></div>
+                    </div>
+                    <div class="flex gap-4 opacity-10 blur-sm">
+                        <div class="w-24 h-24 bg-slate-700 rounded-full flex items-center justify-center text-5xl">🏆</div>
+                        <div class="w-24 h-24 bg-slate-700 rounded-full flex items-center justify-center text-5xl">🎯</div>
+                        <div class="w-24 h-24 bg-slate-700 rounded-full flex items-center justify-center text-5xl">🚀</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 </main>
 
-<!-- МОДАЛКА НАСТРОЕК (НОВОЕ) -->
+<!-- МОДАЛКА НАСТРОЕК -->
 <div id="settings-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center modal-bg p-4 opacity-0 transition-opacity duration-300">
-    <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-[2rem] shadow-2xl p-8 transform scale-95 transition-transform duration-300 relative overflow-hidden" id="settings-content">
-
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
-
-        <h2 class="text-2xl font-black text-white uppercase tracking-tight mb-6" data-i18n="settings_title">Настройки</h2>
-
-        <!-- Сообщение об ошибке -->
+    <div class="bg-theme-card border-theme w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 transform scale-95 transition-all duration-300 relative overflow-hidden" id="settings-content">
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+        <h2 class="text-2xl font-black text-theme-main uppercase tracking-tight mb-6" data-i18n="settings_title">Profile Settings</h2>
         <div id="settings-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center"></div>
 
         <form id="settings-form" class="space-y-6">
-            <!-- Смена Аватара -->
             <div>
-                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2" data-i18n="lbl_change_avatar">Аватар</label>
+                <label class="text-[10px] font-black text-theme-muted uppercase tracking-widest block mb-2" data-i18n="lbl_change_avatar">Avatar</label>
                 <div class="flex items-center gap-4">
-                    <div id="avatar-preview" class="w-16 h-16 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center overflow-hidden">
-                        <!-- Превью -->
-                    </div>
+                    <div id="avatar-preview" class="w-16 h-16 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center overflow-hidden"></div>
                     <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-4 rounded-xl border border-slate-600 transition">
-                        <span>Выбрать файл...</span>
-                        <input type="file" id="avatar-input" accept="image/png" class="hidden">
+                        <span data-i18n="btn_choose_file">Choose file...</span>
+                        <input type="file" id="avatar-input" accept="image/png, image/jpeg, image/jpg" class="hidden">
                     </label>
                 </div>
             </div>
-
-            <!-- Смена Ника -->
             <div>
-                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2" data-i18n="lbl_new_nick">Никнейм</label>
-                <input type="text" id="new-username" class="input-dark w-full p-3 rounded-xl text-sm" placeholder="New Username" minlength="3" maxlength="15">
+                <label class="text-[10px] font-black text-theme-muted uppercase tracking-widest block mb-2" data-i18n="lbl_new_nick">Nickname</label>
+                <input type="text" id="new-username" class="input-dark w-full p-3 rounded-xl text-sm" placeholder="New Username" data-i18n="placeholder_new_nick" minlength="3" maxlength="15">
             </div>
-
             <div class="flex gap-3 mt-8">
-                <button type="button" onclick="closeSettings()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl transition" data-i18n="btn_cancel">
-                    Отмена
+                <button type="button" onclick="closeSettings()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl transition">
+                    <span data-i18n="btn_cancel">Cancel</span>
                 </button>
                 <button type="submit" id="save-btn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-blue-900/20">
-                    <span data-i18n="btn_save">Сохранить</span>
+                    <span data-i18n="btn_save">Save</span>
                 </button>
             </div>
         </form>
@@ -193,21 +162,36 @@
 <script src="/js/i18n.js"></script>
 <script type="module">
     import { fetchWithAuth, logout } from '/js/api.js';
+    import { renderHeader } from '/js/components/header.js';
+
     window.logout = logout;
 
-    let currentUser = null; // Храним текущие данные
+    let currentUser = null;
+    let authDataForHeader = { isLoggedIn: false };
 
-    // --- ЛОГИКА ЗАГРУЗКИ ---
     async function loadProfile() {
         const pathSegments = window.location.pathname.split('/').filter(Boolean);
-        const userIdOrMe = pathSegments[pathSegments.length - 1];
+        const userIdOrMe = pathSegments[pathSegments.length - 1] || 'me';
         const API_URL = `/api/v1/profiles/${userIdOrMe}`;
 
         try {
+            // Если у нас нет токена и мы пытаемся зайти в /me, сразу кидаем ошибку
+            if (userIdOrMe === 'me' && !localStorage.getItem('sql_token')) {
+                throw new Error("Not authorized");
+            }
+
             const response = await fetchWithAuth(API_URL);
             if (response.ok) {
                 const data = await response.json();
-                currentUser = data; // Сохраняем в переменную
+                currentUser = data;
+
+                // Подготавливаем данные для Хедера
+                authDataForHeader = {
+                    isLoggedIn: true,
+                    username: data.username,
+                    lvl: data.lvl,
+                    avatarUrl: data.avatarUrl
+                };
                 renderProfile(data);
             } else {
                 throw new Error("User not found");
@@ -215,6 +199,7 @@
         } catch (err) {
             document.getElementById('loader').classList.add('hidden');
             document.getElementById('error-container').classList.remove('hidden');
+            // Если профиль не найден, хедер отрендерится как для гостя
         }
     }
 
@@ -226,50 +211,38 @@
         document.getElementById('user-name').innerText = name;
         document.getElementById('user-handle').innerText = `@${name.toLowerCase()}`;
 
-        // --- Рендер Аватара ---
         const avatarContainer = document.getElementById('user-avatar-container');
         const avatarText = document.getElementById('user-avatar-text');
-
-        // Очищаем контейнер от старых картинок
         const oldImg = avatarContainer.querySelector('img');
         if (oldImg) oldImg.remove();
 
         if (user.avatarUrl) {
-            // Если есть URL - показываем картинку
             const img = document.createElement('img');
-            // Добавляем timestamp чтобы сбросить кэш браузера при обновлении
             img.src = `${user.avatarUrl}?t=${new Date().getTime()}`;
             img.className = "w-full h-full object-cover";
             avatarContainer.appendChild(img);
             avatarText.style.display = 'none';
-            avatarContainer.classList.remove('bg-slate-800'); // Убираем фон, если картинка прозрачная
         } else {
-            // Если нет URL - показываем букву
             avatarText.style.display = 'block';
             avatarText.innerText = name.charAt(0).toUpperCase();
-            const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500'];
-            avatarContainer.className = `w-32 h-32 rounded-3xl border-4 border-slate-900 flex items-center justify-center shadow-2xl z-10 overflow-hidden ${colors[name.charCodeAt(0) % colors.length]}`;
+            const colors =['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500'];
+            avatarContainer.className = `w-36 h-36 rounded-[2rem] border-4 border-slate-700/50 flex items-center justify-center shadow-[0_0_40px_rgba(59,130,246,0.2)] overflow-hidden ${colors[name.charCodeAt(0) % colors.length]}`;
         }
 
-        // Статистика
         document.getElementById('stat-xp').innerText = user.xp || 0;
         document.getElementById('stat-lvl').innerText = user.lvl || 0;
         document.getElementById('stat-streak').innerText = user.daysStreak || 0;
 
-        // Прогресс бар
         const currentXpInLevel = (user.xp || 0) % 100;
         document.getElementById('level-progress-bar').style.width = `${currentXpInLevel}%`;
         document.getElementById('xp-remaining').innerText = `${currentXpInLevel} / 100 XP`;
 
-        // Кнопка настроек
         const localUsername = localStorage.getItem('sql_username');
         if ((localUsername && localUsername === user.username) || window.location.pathname.endsWith('/me')) {
-            document.getElementById('logout-btn').classList.remove('hidden');
             document.getElementById('btn-settings').classList.remove('hidden');
         }
     }
 
-    // --- ЛОГИКА МОДАЛКИ НАСТРОЕК ---
     const modal = document.getElementById('settings-modal');
     const modalContent = document.getElementById('settings-content');
     const avatarInput = document.getElementById('avatar-input');
@@ -277,31 +250,28 @@
     const errorMsg = document.getElementById('settings-error');
 
     window.openSettings = function() {
-        // Заполняем текущий ник
+        if (!currentUser) return;
         document.getElementById('new-username').value = currentUser.username;
-
-        // Сброс превью
         preview.innerHTML = '';
         avatarInput.value = '';
+        if(currentUser.avatarUrl) {
+            preview.innerHTML = `<img src="${currentUser.avatarUrl}" class="w-full h-full object-cover">`;
+        }
 
-        // Показываем модалку
         modal.classList.remove('hidden');
         setTimeout(() => {
             modal.classList.remove('opacity-0');
             modalContent.classList.remove('scale-95');
-            modalContent.classList.add('scale-100');
         }, 10);
     }
 
     window.closeSettings = function() {
         modal.classList.add('opacity-0');
-        modalContent.classList.remove('scale-100');
         modalContent.classList.add('scale-95');
         setTimeout(() => modal.classList.add('hidden'), 300);
         errorMsg.classList.add('hidden');
     }
 
-    // Превью аватарки
     avatarInput.addEventListener('change', function() {
         const file = this.files[0];
         if (file) {
@@ -318,56 +288,46 @@
         }
     });
 
-    // Сохранение
     document.getElementById('settings-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const newNick = document.getElementById('new-username').value.trim();
         const file = avatarInput.files[0];
         const saveBtn = document.getElementById('save-btn');
+        const saveBtnText = saveBtn.querySelector('span');
 
         saveBtn.disabled = true;
-        saveBtn.innerText = "...";
+        saveBtnText.innerText = "...";
         errorMsg.classList.add('hidden');
 
         try {
-            // 1. Смена ника (если изменился)
             if (newNick && newNick !== currentUser.username) {
                 const res = await fetchWithAuth('/api/v1/profiles/me', {
                     method: 'PATCH',
                     body: JSON.stringify({ username: newNick })
                 });
-                if (res.status === 409) throw new Error(window.t('err_nick_taken') || "Nick taken");
-                if (!res.ok) throw new Error("Error updating nick");
-
-                // Обновляем локально
+                if (res.status === 409) throw new Error(window.t('err_nick_taken'));
+                if (!res.ok) throw new Error("Error updating nickname");
                 localStorage.setItem('sql_username', newNick);
             }
 
-            // 2. Загрузка аватара (если выбран)
             if (file) {
                 const formData = new FormData();
                 formData.append('file', file);
-
-                // fetchWithAuth сам определит что это FormData и не поставит JSON header
-                const res = await fetchWithAuth('/api/v1/profiles/me/avatar/upload', {
-                    method: 'POST',
-                    body: formData
-                    // headers не передаем, api.js сам разберется
-                });
-
+                const res = await fetchWithAuth('/api/v1/profiles/me/avatar/upload', { method: 'POST', body: formData });
                 if (!res.ok) throw new Error("Error uploading avatar");
             }
 
-            // Успех! Перезагружаем профиль
+            // Перезагружаем профиль после сохранения
             await loadProfile();
+            // Обновляем хедер, так как могли измениться имя или аватарка
+            renderHeader(authDataForHeader);
             closeSettings();
 
         } catch (err) {
-            errorMsg.innerText = err.message;
-            errorMsg.classList.remove('hidden');
+            showError(err.message);
         } finally {
             saveBtn.disabled = false;
-            saveBtn.innerText = window.t('btn_save') || "Сохранить";
+            saveBtnText.innerText = window.t('btn_save');
         }
     });
 
@@ -376,14 +336,35 @@
         errorMsg.classList.remove('hidden');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof initTranslations === 'function') initTranslations();
-        const savedLang = localStorage.getItem('sql_lang') || 'ru';
-        const langSelect = document.getElementById('lang-select');
-        if(langSelect) langSelect.value = savedLang;
+    // --- ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ (ИСПРАВЛЕННАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ) ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 1. Устанавливаем тему
+        const savedTheme = localStorage.getItem('sql_theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
 
-        loadProfile();
+        // 2. Инициализируем переводы (i18n.js сам скачает нужный JSON)
+        if (window.initTranslations) {
+            await window.initTranslations();
+        }
+
+        // 3. Загружаем данные пользователя
+        await loadProfile();
+
+        // 4. Только теперь рендерим хедер (без гонки потоков!)
+        renderHeader(authDataForHeader);
+
+        // 5. Включаем сочные эффекты
+        VanillaTilt.init(document.querySelectorAll("[data-tilt]"));
     });
+
+    // Функция-коллбэк для i18n.js
+    window.onTranslationsLoaded = function() {
+        document.title = window.t('profile_title') || 'SQL Master - Profile';
+        const settingsBtn = document.getElementById('btn-settings');
+        if (settingsBtn) {
+            settingsBtn.title = window.t('settings_button_title') || 'Settings';
+        }
+    };
 </script>
 </body>
 </html>

@@ -8,4 +8,6 @@ public class LessonPreviewDto {
     private String title;
     private int seasonXp;
     private int orderIndex;
+    private int stars;
+    private boolean isCompleted;
 }

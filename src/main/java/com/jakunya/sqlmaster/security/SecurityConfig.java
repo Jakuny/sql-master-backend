@@ -25,6 +25,7 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
     private final JwtFilter jwtFilter;
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -38,15 +39,18 @@ public class SecurityConfig {
 
         http.httpBasic(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilter, JwtFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/profiles/me").authenticated()
                         .requestMatchers("/api/v1/users/**", "/api/v1/users").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/tasks", "/api/v1/lesson").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/tasks/**").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/locales/**").permitAll()
                         .anyRequest().permitAll()
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
         return http.build();
     }
 

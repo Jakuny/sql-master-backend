@@ -1,13 +1,14 @@
-package com.jakunya.sqlmaster.Service;
+ package com.jakunya.sqlmaster.Service;
 
 import com.jakunya.sqlmaster.CustomClass.TaskType;
-import com.jakunya.sqlmaster.dto.lessons.LessonCreateDto;
-import com.jakunya.sqlmaster.dto.lessons.LessonDetailDto;
-import com.jakunya.sqlmaster.dto.lessons.LessonPreviewDto;
+import com.jakunya.sqlmaster.dto.lessons.*;
 import com.jakunya.sqlmaster.dto.task.TaskDetailDto;
 import com.jakunya.sqlmaster.dto.task.TaskRequestDto;
 import com.jakunya.sqlmaster.model.Lesson;
+import com.jakunya.sqlmaster.model.LessonProgress;
 import com.jakunya.sqlmaster.model.Task;
+import com.jakunya.sqlmaster.model.User;
+import com.jakunya.sqlmaster.repository.LessonProgressRepository;
 import com.jakunya.sqlmaster.repository.LessonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,12 +16,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-@Service
+ @Service
 @RequiredArgsConstructor
 public class LessonService {
     private final LessonRepository repository;
     private final TaskService taskService;
+    private final LessonProgressRepository lessonProgressRepository;
+    private final UserService userService;
 
     @Transactional
     public String createLesson(LessonCreateDto dto){
@@ -48,8 +52,16 @@ public class LessonService {
         return "Lesson saved";
     }
 
-    public LessonPreviewDto toPreviewDto(Lesson lesson) {
+
+    public LessonPreviewDto toPreviewDto(Lesson lesson, LessonProgress lessonProgress) {
         LessonPreviewDto dto = new LessonPreviewDto();
+        if (lessonProgress != null){
+            dto.setStars(lessonProgress.getStars());
+            dto.setCompleted(lessonProgress.isCompleted());
+        } else {
+            dto.setStars(0);
+            dto.setCompleted(false);
+        }
         dto.setId(lesson.getId());
         dto.setOrderIndex(lesson.getOrderIndex());
         dto.setTitle(lesson.getTitle());
@@ -57,17 +69,25 @@ public class LessonService {
         return dto;
     }
 
-    public List<LessonPreviewDto> getAllLessons(){
+    public List<LessonPreviewDto> getAllLessons(String email){
         List<Lesson> lessons = repository.findAll();
-        List<LessonPreviewDto> dtos = new ArrayList<>();
+        User user = userService.findUserByEmail(email);
+        List<LessonProgress> progressList = lessonProgressRepository.findAllByUserId(user.getId());
+        List<LessonPreviewDto> dtos = getAllLessonsMethod(progressList,lessons);
+        return dtos;
+    }
 
-        for (Lesson lesson: lessons) {
-            LessonPreviewDto dto = new LessonPreviewDto();
-            dto.setId(lesson.getId());
-            dto.setTitle(lesson.getTitle());
-            dto.setSeasonXp(lesson.getSeasonXp());
-            dto.setOrderIndex(dto.getOrderIndex());
-            dtos.add(dto);
+    public List<LessonPreviewDto> getAllLessonsMethod( List<LessonProgress> progressList, List<Lesson> lessons){
+        List<LessonPreviewDto> dtos = new ArrayList<>();
+        for (Lesson lesson : lessons){
+            LessonProgress progress = null;
+            for (LessonProgress p : progressList){
+                if(p.getLesson().getId().equals(lesson.getId())){
+                    progress = p;
+                    break;
+                }
+            }
+            dtos.add(toPreviewDto(lesson, progress));
         }
         return dtos;
     }
@@ -92,5 +112,83 @@ public class LessonService {
     public LessonDetailDto getLessonById(long id) {
         Lesson lesson = repository.getLessonById(id);
         return toDetailDto(lesson);
+    }
+
+    public LessonProgress getLessonProgress(User user, Lesson lesson){
+        return lessonProgressRepository.findByUserAndLesson(user, lesson)
+                .orElseThrow(() -> new RuntimeException("Lesson Progress Not Found"));
+    }
+
+    public LessonProgressDto getLessonProgressDto(User user, Lesson lesson){
+        LessonProgress progress = getLessonProgress(user, lesson);
+        LessonProgressDto dto = new LessonProgressDto();
+        dto.setCompleted(progress.isCompleted());
+        dto.setStars(progress.getStars());
+        return dto;
+    }
+
+     public LessonProgress getOrCreateTaskLessonProgress(User user, Lesson lesson){
+         return lessonProgressRepository.findByUserAndLesson(user, lesson)
+                 .orElseGet(() -> {
+                     LessonProgress lessonProgress = new LessonProgress();
+                     lessonProgress.setLesson(lesson);
+                     lessonProgress.setUser(user);
+                     lessonProgress.setMistakes_count(0);
+                     lessonProgress.setCompleted(false);
+                     lessonProgress.setStars(0);
+                     lessonProgressRepository.save(lessonProgress);
+                     return lessonProgress;
+                 });
+     }
+
+    public LessonCompleteDto completeLesson(long id, String email){
+        //Переменные
+        User user = userService.findUserByEmail(email);
+        Lesson lesson = repository.getLessonById(id);
+        LessonProgress progress = getOrCreateTaskLessonProgress(user, lesson);
+        List<Task> tasks = lesson.getTasks();
+        Set<Task> userTasks = user.getSolvedTasks();
+        //Проверка на решение задач
+        for (Task task : tasks) {
+            if (!userTasks.contains(task)){ //если юзер НЕ прошёл ВСЕ задания в уроке отказ
+                throw new RuntimeException("You dont complete all Tasks");
+            }
+        }
+        int mistakes = progress.getMistakes_count();
+        int stars = 0;
+
+        if (mistakes == 0){
+            stars += 3;
+        } else if (mistakes >= 1 && 3 > mistakes){
+            stars += 2;
+        } else {
+            stars += 1;
+        }
+
+        boolean isFirstTime = !progress.isCompleted();
+        int actualXpEarned = 0;
+
+        if (isFirstTime){
+            actualXpEarned = lesson.getSeasonXp();
+            userService.addExp(user, actualXpEarned);
+        }
+
+        if (stars > progress.getStars()){
+            progress.setStars(stars);
+        }
+        progress.setStars(stars);
+        progress.setCompleted(true);
+        lessonProgressRepository.save(progress);
+
+
+        LessonCompleteDto lessonCompleteDto = new LessonCompleteDto();
+        lessonCompleteDto.setXpEarned(actualXpEarned);
+        lessonCompleteDto.setStars(stars);
+        lessonCompleteDto.setFirstTime(isFirstTime);
+        return lessonCompleteDto;
+    }
+
+    public void saveProgress(LessonProgress progress){
+        lessonProgressRepository.save(progress);
     }
 }

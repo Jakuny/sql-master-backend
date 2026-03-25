@@ -27,4 +27,9 @@ public class HtmlController {
         return "forward:/login.html";
     }
 
+    @GetMapping("/sandbox")
+    public String sandbox() {return "forward:/sandbox.html";}
+
+
+
 }

@@ -41,8 +41,7 @@ export async function fetchWithAuth(url, options = {}) {
     // 2. Добавляем токен
     headers['Authorization'] = `Bearer ${token}`;
 
-    // 3. ВАЖНОЕ ИСПРАВЛЕНИЕ:
-    // Если мы отправляем FormData (файлы), нельзя ставить Content-Type вручную.
+    // 3. ВАЖНО: Если мы отправляем FormData (файлы), нельзя ставить Content-Type вручную.
     // Браузер сам должен поставить 'multipart/form-data; boundary=...'
     if (!(options.body instanceof FormData)) {
         if (!headers['Content-Type']) {

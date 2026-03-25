@@ -4,391 +4,520 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SQL Master - Уроки</title>
+
+    <!-- Libs -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/alasql@1.7/dist/alasql.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- CodeMirror -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/eclipse.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
-        .code-font { font-family: 'JetBrains Mono', monospace; }
+        /* Scramble (Пазл слов) */
+        .scramble-container { display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 60px; padding: 1rem; background: var(--bg-body); border: 2px dashed var(--border-color); border-radius: 1rem; align-items: center; transition: all 0.3s ease; }
+        .scramble-container.error { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .word-chip { background-color: var(--accent); color: white; padding: 0.5rem 1rem; border-radius: 0.75rem; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 0.9rem; cursor: pointer; user-select: none; transition: transform 0.1s, box-shadow 0.1s; box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+        .word-chip:hover { transform: translateY(-2px); box-shadow: 0 6px 10px rgba(0,0,0,0.3); }
+        .word-chip:active { transform: translateY(4px); box-shadow: none; }
+        .word-btn.target-word { background-color: #8b5cf6; box-shadow: 0 4px 0 rgba(139, 92, 246, 0.5); }
+        .word-btn.target-word:active { transform: translateY(4px); box-shadow: none; }
 
-        .CodeMirror {
-            height: 100% !important;
-            font-family: 'JetBrains Mono';
-            background-color: #1e293b !important;
-            color: #e2e8f0;
-            border: none;
-            font-size: 14px;
-        }
-        .CodeMirror-gutters { background-color: #1e293b !important; border-right: 1px solid #334155; }
+        /* Анимации вьюх */
+        .view-section { transition: opacity 0.4s ease, transform 0.4s ease; opacity: 1; transform: scale(1); z-index: 10; position: absolute; inset: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background-color: var(--bg-body); }
+        .view-hidden { opacity: 0; transform: scale(0.95); pointer-events: none; z-index: -1; }
 
-        .view-section { transition: opacity 0.4s ease; opacity: 1; z-index: 10; }
-        .view-hidden { opacity: 0; pointer-events: none; z-index: -1; position: absolute; inset: 0; }
+        /* Звезды */
+        .star-active { color: #fbbf24; filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.5)); }
+        .star-inactive { color: #334155; }
 
-        .dot-active { background-color: #10b981; transform: scale(1.2); box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
-        .dot-inactive { background-color: #334155; transform: scale(1); }
+        /* CodeMirror */
+        .CodeMirror { height: 100% !important; border: none; font-family: 'JetBrains Mono'; font-size: 14px; }
+        body:not([data-theme="light"]) .CodeMirror { background-color: #1e293b !important; color: #e2e8f0 !important; }
+        body:not([data-theme="light"]) .CodeMirror-gutters { background-color: #1e293b !important; border-right: 1px solid #334155; }
 
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        /* Стили для 3D кнопок Duolingo-style */
+        .duo-btn { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; transition: all 0.2s; cursor: pointer; position: relative; }
+        .duo-btn-locked { background: #334155; color: #64748b; border-bottom: 6px solid #1e293b; cursor: not-allowed; }
+        .duo-btn-current { background: #a855f7; color: white; border-bottom: 6px solid #7e22ce; }
+        .duo-btn-current:hover { transform: translateY(-4px); border-bottom-width: 10px; }
+        .duo-btn-current:active { transform: translateY(4px); border-bottom-width: 2px; }
+        .duo-btn-completed { background: #fbbf24; color: #b45309; border-bottom: 6px solid #d97706; }
+        .duo-btn-completed:hover { transform: translateY(-4px); border-bottom-width: 10px; }
+        .duo-btn-completed:active { transform: translateY(4px); border-bottom-width: 2px; }
 
-        /* Стили для текста теории */
-        .prose code { background: #1e293b; padding: 0.2rem 0.4rem; border-radius: 4px; color: #60a5fa; font-family: 'JetBrains Mono'; }
-        .prose pre { background: #020617 !important; border: 1px solid #1e293b; }
+        @keyframes floating { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .animate-floating { animation: floating 2s ease-in-out infinite; }
+
+        .loader { border: 3px solid rgba(59, 130, 246, 0.1); border-top-color: #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="h-screen flex flex-col overflow-hidden selection:bg-blue-500/30">
 
-<!-- ХЕДЕР (Унифицированный) -->
-<header class="border-b border-slate-800 bg-slate-900 p-4 flex justify-between items-center shadow-lg z-30">
-    <div class="flex items-center gap-4">
-        <a href="/" class="font-bold text-xl tracking-tight text-white flex items-center gap-3 select-none">
-            <div class="bg-blue-600 px-3 py-1 rounded-lg shadow-lg shadow-blue-500/20 tracking-wide text-white">SQL</div>
-            <span>Master</span>
-        </a>
-    </div>
+<!-- ХЕДЕР -->
+<header id="main-header" class="fixed top-0 w-full bg-theme-nav z-50 transition-colors duration-500 border-b app-border"></header>
 
-    <div class="flex items-center gap-3 bg-slate-800 px-4 py-1.5 rounded-full border border-slate-700">
-        <div class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Progress</div>
-        <div class="flex gap-2">
-            <div id="dot-1" class="w-2.5 h-2.5 rounded-full dot-inactive transition-all duration-300"></div>
-            <div id="dot-2" class="w-2.5 h-2.5 rounded-full dot-inactive transition-all duration-300"></div>
-            <div id="dot-3" class="w-2.5 h-2.5 rounded-full dot-inactive transition-all duration-300"></div>
+<div class="flex-1 relative overflow-hidden app-bg pt-20 flex">
+
+    <!-- ========================================== -->
+    <!-- 1. КАРТА УРОКОВ (DUOLINGO PATH)            -->
+    <!-- ========================================== -->
+    <div id="map-view" class="view-section app-bg overflow-y-auto custom-scrollbar">
+        <div class="max-w-4xl mx-auto py-12 px-4 relative flex flex-col items-center">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-black text-theme-main uppercase tracking-tighter" data-i18n="less_list">COURSE MAP</h1>
+                <p class="text-theme-muted font-medium mt-2">Follow the path to master SQL.</p>
+            </div>
+
+            <div id="lessons-loader" class="loader !w-12 !h-12 !border-4 mb-10"></div>
+
+            <div id="path-container" class="relative flex flex-col items-center w-full max-w-sm hidden pb-20">
+                <div class="absolute top-10 bottom-10 left-1/2 w-4 bg-slate-800 -ml-2 rounded-full z-0 border-x border-slate-700 shadow-inner"></div>
+            </div>
         </div>
     </div>
-</header>
 
-<div class="flex flex-1 overflow-hidden relative">
-
-    <!-- Сайдбар: Список уроков -->
-    <aside class="w-64 border-r border-slate-800 bg-slate-900/50 flex flex-col z-20 flex-shrink-0">
-        <div class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-slate-800/50">Syllabus</div>
-        <div id="lessons-list" class="space-y-1 p-2 overflow-y-auto custom-scrollbar flex-1">
-            <!-- Генерируется JS -->
+    <!-- ========================================== -->
+    <!-- 2. ЭКРАН ТЕОРИИ                            -->
+    <!-- ========================================== -->
+    <div id="theory-view" class="view-section view-hidden app-bg">
+        <div class="absolute top-4 left-4 z-20">
+            <button onclick="backToMap()" class="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition text-xs uppercase tracking-widest border border-slate-700">
+                ← <span data-i18n="btn_back">Back</span>
+            </button>
         </div>
-    </aside>
 
-    <!-- Основная область -->
-    <main class="flex-1 relative bg-[#0f172a] overflow-hidden flex flex-col">
-
-        <!-- 1. ЭКРАН ТЕОРИИ -->
-        <div id="theory-view" class="view-section absolute inset-0 flex flex-col bg-[#0f172a]">
-            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar flex justify-center">
-                <div class="max-w-3xl w-full">
-                    <div class="w-16 h-1 bg-purple-500 rounded mb-6 shadow-[0_0_15px_rgba(168,85,247,0.5)]"></div>
-                    <h2 class="text-4xl font-black text-white mb-8 tracking-tight" id="lesson-title-display">...</h2>
-                    <div id="theory-content" class="prose prose-invert prose-blue max-w-none text-slate-300 mb-20 leading-relaxed">
-                        <!-- Контент теории -->
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar flex justify-center pt-20">
+            <div class="max-w-3xl w-full">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="w-16 h-1 bg-purple-500 rounded shadow-[0_0_15px_rgba(168,85,247,0.5)]"></div>
+                    <div class="text-yellow-500 font-bold text-sm bg-yellow-500/10 px-3 py-1 rounded-lg border border-yellow-500/20">
+                        +<span id="lesson-xp">0</span> XP
                     </div>
                 </div>
-            </div>
-            <!-- Кнопка перехода -->
-            <div class="p-6 border-t border-slate-800 bg-slate-900/80 backdrop-blur-md flex justify-center z-10">
-                <button onclick="startPractice()" class="group px-10 py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-purple-900/20 transition-all transform hover:scale-[1.02] flex items-center gap-3">
-                    <span>Начать практику</span>
-                    <svg class="w-5 h-5 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                </button>
+                <h2 class="text-4xl font-black app-text mb-8 tracking-tight" id="lesson-title-display">...</h2>
+                <div id="theory-content" class="prose prose-invert prose-lg max-w-none app-text-muted mb-20 leading-relaxed"></div>
             </div>
         </div>
 
-        <!-- 2. ЭКРАН ПРАКТИКИ -->
-        <div id="practice-view" class="view-section view-hidden absolute inset-0 flex h-full bg-[#0f172a]">
+        <div class="p-6 border-t app-border app-bg-sec flex justify-center z-10">
+            <button onclick="startPractice()" class="group px-10 py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-purple-900/20 transition-all transform hover:scale-[1.02] flex items-center gap-3">
+                <span data-i18n="less_start">Start Practice</span>
+                <svg class="w-5 h-5 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </button>
+        </div>
+    </div>
 
-            <!-- Лево: Редактор и Результат -->
-            <div class="flex-1 flex flex-col min-w-0">
-                <!-- Редактор -->
-                <div class="h-1/2 flex flex-col border-b border-slate-800">
-                    <div class="bg-slate-900 px-4 py-2 flex justify-between items-center border-b border-slate-800">
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">SQL Input</span>
-                        <div class="flex items-center gap-3">
-                            <button onclick="skipTask()" class="text-[10px] text-slate-500 hover:text-red-400 transition uppercase font-bold tracking-wider">Пропустить</button>
-                            <button onclick="checkAnswer()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-1.5 rounded-lg text-xs font-bold transition shadow-lg shadow-blue-900/20 active:scale-95">
-                                Выполнить
-                            </button>
-                        </div>
+    <!-- ========================================== -->
+    <!-- 3. ЭКРАН ПРАКТИКИ                          -->
+    <!-- ========================================== -->
+    <div id="practice-view" class="view-section view-hidden app-bg">
+        <div class="flex items-center gap-4 p-4 border-b app-border app-bg-sec">
+            <button onclick="backToTheory()" class="text-slate-500 hover:text-white transition p-2 rounded-lg hover:bg-slate-800" title="Back">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            </button>
+            <div class="flex-1 h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                <div id="lesson-progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="text-xs font-black text-slate-500 w-12 text-right"><span id="task-num">1</span>/<span id="task-total">3</span></div>
+        </div>
+
+        <div class="flex flex-1 overflow-hidden relative z-10">
+
+            <div class="flex-1 flex flex-col min-w-0 border-r app-border relative">
+                <!-- SQL MODE -->
+                <div id="mode-sql" class="flex flex-col h-1/2 relative hidden">
+                    <div class="app-bg-sec px-4 py-2 border-b app-border">
+                        <span class="text-[10px] font-black app-text-muted uppercase tracking-widest">SQL Input</span>
                     </div>
-                    <div class="flex-1 relative">
+                    <div class="flex-1 relative bg-[var(--bg-editor)]">
                         <textarea id="editor"></textarea>
                     </div>
                 </div>
-
-                <!-- Результат -->
-                <div class="h-1/2 flex flex-col bg-[#0f172a]">
-                    <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between items-center">
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Query Output</span>
-                        <span id="result-status" class="text-xs font-bold"></span>
+                <!-- SCRAMBLE MODE -->
+                <div id="mode-scramble" class="flex flex-col flex-1 p-8 items-center justify-center hidden app-bg-ter">
+                    <div class="w-full max-w-3xl">
+                        <p class="app-text-muted text-[10px] uppercase font-black tracking-widest mb-3">Your Answer:</p>
+                        <div id="scramble-target" class="scramble-container mb-10 shadow-inner"></div>
+                        <p class="app-text-muted text-[10px] uppercase font-black tracking-widest mb-3">Words:</p>
+                        <div id="scramble-source" class="scramble-container border-transparent bg-transparent"></div>
                     </div>
-                    <div id="result-container" class="flex-1 p-0 overflow-auto font-mono text-sm text-slate-400 custom-scrollbar bg-[#0a0f1d]">
-                        <div id="empty-msg" class="h-full flex flex-col items-center justify-center text-slate-700 select-none">
-                            <div class="text-3xl mb-2 opacity-10">SELECT *</div>
-                        </div>
-                        <table class="w-full text-left border-collapse hidden" id="result-table">
-                            <thead class="bg-slate-900 sticky top-0"><tr id="result-head" class="text-blue-400 border-b border-slate-800 text-[11px] uppercase tracking-wider"></tr></thead>
-                            <tbody id="result-body" class="divide-y divide-slate-800/50"></tbody>
+                </div>
+                <!-- OUTPUT -->
+                <div id="result-panel" class="h-1/2 border-t app-border app-bg-ter flex flex-col hidden">
+                    <div class="app-bg-sec px-4 py-2 border-b app-border flex justify-between items-center">
+                        <span class="text-[10px] font-black app-text-muted uppercase tracking-widest">Output</span>
+                        <span id="status-msg" class="text-xs font-bold uppercase tracking-wider ml-2"></span>
+                    </div>
+                    <div class="flex-1 overflow-auto custom-scrollbar p-0 relative">
+                        <div id="error-msg" class="hidden m-4 p-4 text-red-400 bg-red-900/10 border border-red-500/20 rounded-xl text-xs font-mono"></div>
+                        <table class="w-full text-left text-sm whitespace-nowrap hidden" id="result-table">
+                            <thead class="app-bg-sec sticky top-0"><tr id="result-head" class="text-blue-500 border-b app-border text-[10px] uppercase tracking-widest"></tr></thead>
+                            <tbody id="result-body" class="divide-y app-border app-text-muted font-mono text-xs"></tbody>
                         </table>
-                        <div id="error-msg" class="hidden m-4 text-red-400 bg-red-900/10 p-4 rounded-lg border border-red-500/20 text-xs font-mono"></div>
+                        <div id="empty-state" class="h-full flex flex-col items-center justify-center app-text-muted italic select-none">
+                            <div class="text-4xl mb-2 opacity-20">⌨️</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Право: Задача и Схема БД -->
-            <aside class="w-80 border-l border-slate-800 bg-slate-900/50 flex flex-col overflow-y-auto custom-scrollbar">
+            <aside class="w-96 app-bg-sec flex flex-col overflow-y-auto custom-scrollbar">
+                <div class="p-8 flex-1 flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <span id="task-badge" class="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-lg text-[10px] font-black uppercase tracking-widest border border-blue-500/20">SQL</span>
+                    </div>
+                    <h2 class="text-2xl font-black app-text mb-4 leading-snug" id="task-title">...</h2>
+                    <div id="task-desc" class="text-sm app-text-muted leading-relaxed font-medium mb-8"></div>
 
-                <div class="p-6 border-b border-slate-800/50 bg-slate-900/30">
-                    <div class="flex justify-between items-center mb-4">
-                            <span class="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded text-[10px] font-black uppercase tracking-widest border border-purple-500/20">
-                                Task <span id="task-num">1</span>/3
-                            </span>
-                        <button onclick="backToTheory()" class="text-[10px] text-slate-500 hover:text-white transition uppercase font-black tracking-widest">
-                            📖 Theory
+                    <!-- Подсказка -->
+                    <div class="mb-4">
+                        <button onclick="document.getElementById('hint-wrapper').classList.toggle('open')" class="w-full bg-[#0f172a] hover:bg-slate-800 border border-slate-700 hover:border-blue-500/50 text-slate-400 px-4 py-3 rounded-xl transition text-xs font-bold flex items-center justify-center gap-2 group">
+                            <span class="group-hover:text-yellow-400 transition">💡</span> <span data-i18n="btn_hint">Hint</span>
                         </button>
                     </div>
-                    <div id="task-desc" class="text-sm text-slate-200 leading-relaxed font-medium"></div>
-                </div>
+                    <div id="hint-wrapper" class="collapsible-wrapper mb-8">
+                        <div class="collapsible-inner">
+                            <div class="p-4 bg-blue-900/10 border border-blue-500/20 rounded-2xl text-blue-300 text-xs italic shadow-inner">
+                                <span id="hint-text">Подсказок нет</span>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="p-6">
-                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Current Schema</h3>
-                    <div id="schema-container" class="space-y-3">
-                        <!-- Таблицы -->
+                    <div id="schema-block" class="mb-8 hidden">
+                        <h3 class="text-[10px] font-black app-text-muted uppercase tracking-widest mb-3">DATABASE SCHEMA</h3>
+                        <div id="schema-container" class="space-y-2"></div>
+                    </div>
+
+                    <div class="mt-auto pt-6 border-t app-border flex justify-end">
+                        <button id="btn-check" onclick="checkAnswer()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition shadow-lg shadow-blue-900/20 active:scale-95">
+                            CHECK
+                        </button>
+                        <button id="btn-next" onclick="nextTask()" class="hidden w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition shadow-lg shadow-green-900/20 active:scale-95 flex justify-center items-center gap-2">
+                            NEXT →
+                        </button>
                     </div>
                 </div>
             </aside>
-
-        </div>
-    </main>
-</div>
-
-<!-- Модалка завершения -->
-<div id="lesson-complete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl transition-all duration-300 opacity-0 pointer-events-none">
-    <div class="bg-slate-800 p-10 rounded-[2rem] border border-purple-500/30 text-center max-w-sm w-full shadow-2xl">
-        <div class="text-7xl mb-6">🏆</div>
-        <h2 class="text-2xl font-black text-white mb-2 uppercase tracking-tight">Урок завершен!</h2>
-        <p class="text-slate-400 text-sm mb-8">Вы отлично справились со всеми задачами модуля.</p>
-        <div class="space-y-3">
-            <button onclick="nextLesson()" class="w-full bg-purple-600 hover:bg-purple-500 text-white py-4 rounded-2xl font-bold transition shadow-lg shadow-purple-900/20">Следующий урок →</button>
-            <a href="/" class="w-full block bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-2xl font-bold transition">В главное меню</a>
         </div>
     </div>
 </div>
 
-<script src="/js/lessons_data.js"></script>
-<script>
-    let currentLessonIndex = 0;
-    let currentTaskIndex = 0;
-    let cmEditor;
-    const correctSound = new Audio('/sounds/correct_sound.mp3');
-    correctSound.volume = 0.4;
+<!-- Модалка Финиша Урока -->
+<div id="lesson-finish-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity duration-300 opacity-0">
+    <div class="bg-slate-800 border border-purple-500/30 p-10 rounded-[2rem] text-center max-w-sm w-full transform scale-95 transition-transform duration-300 shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+        <div class="text-7xl mb-6 animate-bounce">🏆</div>
+        <h3 class="text-3xl font-black text-white mb-2 uppercase tracking-tight">LESSON PASSED!</h3>
+        <div class="flex justify-center gap-2 mb-6 text-4xl" id="stars-container"></div>
+        <p class="text-slate-400 text-sm mb-8 font-medium">Earned <span class="text-yellow-400 font-bold text-lg" id="total-xp-earned">0</span> XP</p>
+        <button onclick="backToMap()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition active:scale-95">
+            Back to Map
+        </button>
+    </div>
+</div>
 
-    function init() {
-        // Список уроков слева
-        const list = document.getElementById('lessons-list');
-        if (window.COURSES) {
-            window.COURSES.forEach((course, idx) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left px-4 py-3 text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition mb-1 flex items-center gap-3 group";
-                btn.innerHTML = `<span class="w-6 h-6 rounded-lg bg-slate-800 text-slate-500 flex items-center justify-center text-[10px] font-black group-hover:bg-purple-600 group-hover:text-white transition">${idx + 1}</span><span class="truncate">${course.title}</span>`;
-                btn.onclick = () => loadLesson(idx);
-                list.appendChild(btn);
-            });
+<script src="/js/i18n.js"></script>
+<script type="module">
+    import { fetchWithAuth, logout } from '/js/api.js';
+    import { renderHeader } from '/js/components/header.js';
+
+    window.logout = logout;
+    const correctSound = new Audio('/sounds/correct_sound.mp3');
+    correctSound.volume = 0.5;
+
+    let currentLesson = null, currentTasks =[], currentTaskIndex = 0, cmEditor, scrambleSelected =[];
+
+    // Глобальные хелперы
+    window.toggleTheme = function() {
+        const newTheme = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', newTheme);
+        localStorage.setItem('sql_theme', newTheme);
+        if(document.getElementById('icon-sun')) document.getElementById('icon-sun').classList.toggle('hidden', newTheme === 'dark');
+        if(document.getElementById('icon-moon')) document.getElementById('icon-moon').classList.toggle('hidden', newTheme === 'light');
+        if(cmEditor) cmEditor.setOption("theme", newTheme === 'light' ? 'eclipse' : 'dracula');
+    };
+
+    window.toggleLangMenu = () => document.getElementById('lang-menu')?.classList.toggle('open');
+    window.handleLangChange = (lang, label) => {
+        document.getElementById('lang-menu')?.classList.remove('open');
+        if(window.changeLanguage) window.changeLanguage(lang);
+        const lbl = document.getElementById('current-lang-label');
+        if(lbl) lbl.innerText = label;
+    };
+
+    window.confirmLogout = async function() {
+        if (typeof Swal !== 'undefined') {
+            const res = await Swal.fire({ title: 'Logout?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes', cancelButtonText: 'No', background: 'var(--bg-body)', color: 'var(--text-main)' });
+            if (res.isConfirmed) logout();
+        } else logout();
+    };
+
+    async function initApp() {
+        const savedTheme = localStorage.getItem('sql_theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+
+        const token = localStorage.getItem('sql_token');
+        let authData = { isLoggedIn: false };
+        if (token) {
+            try {
+                const res = await fetchWithAuth('/api/v1/profiles/me');
+                if(res.ok) authData = { isLoggedIn: true, ...(await res.json()) };
+            } catch(e) {}
+        }
+        if (typeof renderHeader === 'function') {
+            renderHeader(authData);
+            if(document.getElementById('icon-sun')) document.getElementById('icon-sun').classList.toggle('hidden', savedTheme === 'dark');
+            if(document.getElementById('icon-moon')) document.getElementById('icon-moon').classList.toggle('hidden', savedTheme === 'light');
         }
 
-        // Инициализация редактора
-        cmEditor = CodeMirror.fromTextArea(document.getElementById("editor"), {
-            mode: "text/x-sql",
-            theme: "dracula",
-            lineNumbers: true,
-            smartIndent: true,
-            indentWithTabs: true
-        });
+        if(window.initTranslations) window.initTranslations();
 
-        loadLesson(0);
+        cmEditor = CodeMirror.fromTextArea(document.getElementById("editor"), { mode: "text/x-sql", theme: savedTheme === 'light' ? 'eclipse' : 'dracula', lineNumbers: true, smartIndent: true });
+
+        await loadLessonsList();
     }
 
-    function loadLesson(index) {
-        if (!window.COURSES || index >= window.COURSES.length) return;
-        currentLessonIndex = index;
-        currentTaskIndex = 0;
-        const lesson = window.COURSES[index];
+    const MOCK_LESSONS =[
+        { id: 1, title: "SQL Basics", seasonXp: 100, completed: true, stars: 3, content: "<h1>Hello!</h1>", taskDetailDtos:[ { id: 10, title: "Select", description: "Select all from users", type: "SQL", initScript: "CREATE TABLE users(id INT);", checkSql: "SELECT * FROM users", defaultCode: "" } ] },
+        { id: 2, title: "Filtering", seasonXp: 150, completed: false, stars: 0, content: "<h1>WHERE</h1>", taskDetailDtos:[ { id: 11, title: "Scramble", description: "Build query", type: "SCRAMBLE", scrambleWords:["SELECT", "*", "FROM", "users"], checkSql: "SELECT * FROM users" } ] }
+    ];
 
-        document.getElementById('lesson-id-display').innerText = index + 1;
-        document.getElementById('lesson-title-display').innerText = lesson.title;
-
-        // Сброс индикаторов
-        [1,2,3].forEach(i => document.getElementById(`dot-${i}`).className = "w-2.5 h-2.5 rounded-full dot-inactive transition-all");
-
-        document.getElementById('theory-content').innerHTML = lesson.theory;
-
-        showTheory();
-        hideModal();
-
-        // База данных
+    async function loadLessonsList() {
+        const container = document.getElementById('path-container');
+        const loader = document.getElementById('lessons-loader');
+        let lessons =[];
         try {
-            alasql('DROP DATABASE IF EXISTS lesson_db');
-            alasql('CREATE DATABASE lesson_db');
-            alasql('USE lesson_db');
-            if (lesson.initSql) lesson.initSql.forEach(sql => alasql(sql));
-            renderSchema();
+            const res = await fetchWithAuth('/api/v1/lessons');
+            if(!res.ok) throw new Error();
+            lessons = await res.json();
+        } catch(e) { lessons = MOCK_LESSONS; }
+
+        loader?.classList.add('hidden');
+        container?.classList.remove('hidden');
+        container.querySelectorAll('.lesson-node').forEach(n => n.remove());
+
+        const offsets =['-translate-x-12', 'translate-x-0', 'translate-x-12', 'translate-x-0'];
+
+        lessons.forEach((lesson, idx) => {
+            const isLocked = idx > 0 && !lessons[idx-1].completed && !lesson.completed;
+            const isCurrent = !lesson.completed && (idx === 0 || lessons[idx-1].completed);
+            let btnClass = "duo-btn "; let icon = isLocked ? "🔒" : (lesson.completed ? "★" : "▶");
+            if (lesson.completed) btnClass += "duo-btn-completed z-10";
+            else if (isCurrent) btnClass += "duo-btn-current z-10 animate-floating";
+            else btnClass += "duo-btn-locked z-10";
+
+            const node = document.createElement('div');
+            node.className = `lesson-node relative flex flex-col items-center mb-10 ${offsets[idx % 4]} hover:scale-105 transition-transform`;
+            node.innerHTML = `
+                    <div class="mb-3 px-4 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-400 shadow-xl z-20">${lesson.title}</div>
+                    <button class="${btnClass}" ${isLocked ? 'disabled' : ''}><span>${icon}</span></button>
+                `;
+            if (!isLocked) node.querySelector('button').onclick = () => loadLesson(lesson.id);
+            container.appendChild(node);
+        });
+    }
+
+    window.backToMap = function() {
+        document.getElementById('theory-view')?.classList.add('view-hidden');
+        document.getElementById('practice-view')?.classList.add('view-hidden');
+        document.getElementById('lesson-finish-modal')?.classList.add('hidden');
+        document.getElementById('map-view')?.classList.remove('view-hidden');
+        loadLessonsList();
+    };
+
+    async function loadLesson(id) {
+        try {
+            let lessonData;
+            try {
+                const res = await fetchWithAuth(`/api/v1/lessons/${id}`);
+                if(!res.ok) throw new Error();
+                lessonData = await res.json();
+            } catch(e) { lessonData = MOCK_LESSONS.find(l => l.id === id); }
+
+            currentLesson = lessonData; currentTasks = currentLesson.taskDetailDtos ||[]; currentTaskIndex = 0;
+
+            document.getElementById('lesson-title-display').innerText = currentLesson.title;
+            document.getElementById('lesson-xp').innerText = currentLesson.seasonXp;
+            document.getElementById('theory-content').innerHTML = currentLesson.content;
+
+            document.getElementById('empty-view')?.classList.add('hidden');
+            document.getElementById('map-view')?.classList.add('view-hidden');
+            document.getElementById('practice-view')?.classList.add('view-hidden');
+            document.getElementById('theory-view')?.classList.remove('view-hidden');
+
+            alasql('DROP DATABASE IF EXISTS lesson_db'); alasql('CREATE DATABASE lesson_db'); alasql('USE lesson_db');
         } catch(e) { console.error(e); }
     }
 
+    window.backToTheory = () => {
+        document.getElementById('practice-view')?.classList.add('view-hidden');
+        document.getElementById('theory-view')?.classList.remove('view-hidden');
+    };
+
+    window.startPractice = function() {
+        if (currentTasks.length === 0) return alert("No tasks");
+        document.getElementById('theory-view')?.classList.add('view-hidden');
+        document.getElementById('practice-view')?.classList.remove('view-hidden');
+        setTimeout(() => { if(cmEditor) cmEditor.refresh(); }, 50);
+        loadTask(0);
+    }
+
+    function loadTask(index) {
+        currentTaskIndex = index; const task = currentTasks[index];
+        document.getElementById('lesson-progress-bar').style.width = `${(index / currentTasks.length) * 100}%`;
+        document.getElementById('task-total').innerText = currentTasks.length;
+        document.getElementById('task-num').innerText = index + 1;
+        document.getElementById('task-title').innerText = task.title;
+        document.getElementById('task-desc').innerHTML = task.description;
+        document.getElementById('task-badge').innerText = task.type || "SQL";
+
+        document.getElementById('btn-check')?.classList.remove('hidden');
+        if(document.getElementById('btn-check')) document.getElementById('btn-check').disabled = false;
+        document.getElementById('btn-next')?.classList.add('hidden');
+        document.getElementById('status-msg').innerText = '';
+
+        if (task.initScript) { try { task.initScript.split(';').filter(s => s.trim().length > 0).forEach(sql => alasql(sql)); renderSchema(); } catch(e) {} }
+        else { document.getElementById('schema-container').innerHTML = ''; document.getElementById('schema-block')?.classList.add('hidden'); }
+
+        if (task.type === 'SCRAMBLE') setupScramble(task); else setupSQL(task);
+    }
+
     function renderSchema() {
-        const container = document.getElementById('schema-container');
+        const container = document.getElementById('schema-container'); const block = document.getElementById('schema-block');
         container.innerHTML = '';
         try {
             const tables = alasql("SHOW TABLES");
-            if (tables.length === 0) {
-                container.innerHTML = '<div class="text-slate-600 text-[10px] italic uppercase tracking-widest">No tables</div>';
-                return;
-            }
-            tables.forEach(t => {
-                const div = document.createElement('div');
-                div.className = "bg-slate-800/50 rounded-xl p-3 border border-slate-700/50";
-                let html = `<div class="font-black text-blue-400 mb-2 flex items-center gap-2 text-[10px] uppercase tracking-widest">▤ ${t.tableid}</div><ul class="space-y-1 pl-1">`;
-                const cols = alasql(`SHOW COLUMNS FROM ${t.tableid}`);
-                cols.forEach(c => {
-                    html += `<li class="flex justify-between text-[10px] font-mono border-b border-slate-700/20 pb-1 last:border-0"><span class="text-slate-300">${c.columnid}</span> <span class="text-slate-600">${c.type || 'INT'}</span></li>`;
+            if(tables.length > 0) {
+                block?.classList.remove('hidden');
+                tables.forEach(t => {
+                    let html = `<div class="bg-slate-800/50 p-3 rounded-xl border app-border"><div class="text-[10px] font-black text-blue-400 mb-2 uppercase tracking-widest">▤ ${t.tableid}</div><ul class="space-y-1">`;
+                    alasql(`SHOW COLUMNS FROM ${t.tableid}`).forEach(c => { html += `<li class="flex justify-between text-[10px] font-mono app-text-muted"><span>${c.columnid}</span></li>`; });
+                    container.innerHTML += html + "</ul></div>";
                 });
-                div.innerHTML = html + "</ul>";
-                container.appendChild(div);
-            });
+            } else block?.classList.add('hidden');
         } catch(e) {}
     }
 
-    function showTheory() {
-        document.getElementById('practice-view').classList.add('view-hidden');
-        document.getElementById('theory-view').classList.remove('view-hidden');
+    function setupSQL(task) {
+        document.getElementById('mode-sql')?.classList.remove('hidden');
+        document.getElementById('result-panel')?.classList.remove('hidden');
+        document.getElementById('mode-scramble')?.classList.add('hidden');
+        cmEditor.setValue(task.defaultCode || ""); setTimeout(() => cmEditor.refresh(), 50);
+        document.getElementById('empty-state')?.classList.remove('hidden');
+        document.getElementById('result-table')?.classList.add('hidden');
+        document.getElementById('error-msg')?.classList.add('hidden');
     }
 
-    function backToTheory() { showTheory(); }
-
-    function startPractice() {
-        document.getElementById('theory-view').classList.add('view-hidden');
-        document.getElementById('practice-view').classList.remove('view-hidden');
-        setTimeout(() => { cmEditor.refresh(); }, 50);
-        loadTask();
+    function setupScramble(task) {
+        document.getElementById('mode-sql')?.classList.add('hidden');
+        document.getElementById('result-panel')?.classList.add('hidden');
+        document.getElementById('mode-scramble')?.classList.remove('hidden');
+        scrambleSelected =[];
+        const sourceDiv = document.getElementById('scramble-source'), targetDiv = document.getElementById('scramble-target');
+        if(!sourceDiv || !targetDiv) return;
+        sourceDiv.innerHTML = ''; targetDiv.innerHTML = ''; targetDiv.classList.remove('error');
+        const words = [...(task.scrambleWords ||["SELECT", "*", "FROM", "table"])].sort(() => Math.random() - 0.5);
+        words.forEach(word => {
+            const btn = document.createElement('div'); btn.className = "word-chip flex items-center justify-center"; btn.innerText = word;
+            btn.onclick = () => moveWord(btn, word, true); sourceDiv.appendChild(btn);
+        });
     }
 
-    function loadTask() {
-        const lesson = window.COURSES[currentLessonIndex];
-        const task = lesson.tasks[currentTaskIndex];
-        document.getElementById('task-num').innerText = currentTaskIndex + 1;
-        document.getElementById('task-desc').innerHTML = task.desc;
-        cmEditor.setValue(task.default || "");
-
-        document.getElementById('empty-msg').classList.remove('hidden');
-        document.getElementById('result-table').classList.add('hidden');
-        document.getElementById('error-msg').classList.add('hidden');
-        document.getElementById('result-status').innerText = '';
-    }
-
-    function skipTask() {
-        const task = window.COURSES[currentLessonIndex].tasks[currentTaskIndex];
-        cmEditor.setValue(task.checkSql);
-        checkAnswer();
-    }
-
-    function checkAnswer() {
-        const userSql = cmEditor.getValue();
-        const lesson = window.COURSES[currentLessonIndex];
-        const task = lesson.tasks[currentTaskIndex];
-
-        const table = document.getElementById('result-table');
-        const thead = document.getElementById('result-head');
-        const tbody = document.getElementById('result-body');
-        const errorDiv = document.getElementById('error-msg');
-        const emptyMsg = document.getElementById('empty-msg');
-        const statusEl = document.getElementById('result-status');
-
-        emptyMsg.classList.add('hidden');
-        errorDiv.classList.add('hidden');
-        table.classList.remove('hidden');
-
-        try {
-            const userRes = alasql(userSql);
-            const checkRes = alasql(task.checkSql);
-
-            thead.innerHTML = ''; tbody.innerHTML = '';
-            if (Array.isArray(userRes) && userRes.length > 0) {
-                const keys = Object.keys(userRes[0]);
-                let trH = document.createElement('tr');
-                keys.forEach(k => {
-                    let th = document.createElement('th');
-                    th.className = "px-4 py-2 text-left";
-                    th.innerText = k;
-                    trH.appendChild(th);
-                });
-                thead.appendChild(trH);
-                userRes.forEach(row => {
-                    let tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-800/30 transition-colors";
-                    keys.forEach(k => {
-                        let td = document.createElement('td');
-                        td.className = "px-4 py-2 border-b border-slate-800/30";
-                        td.innerText = row[k];
-                        tr.appendChild(td);
-                    });
-                    tbody.appendChild(tr);
-                });
-            }
-
-            // Логика проверки
-            let isCorrect = false;
-            if (Array.isArray(userRes) && userRes.length === 1 && Object.keys(userRes[0]).length === 1 &&
-                Array.isArray(checkRes) && checkRes.length === 1) {
-                if (Object.values(userRes[0])[0] == Object.values(checkRes[0])[0]) isCorrect = true;
-            } else if (JSON.stringify(userRes) === JSON.stringify(checkRes)) {
-                isCorrect = true;
-            }
-
-            if (isCorrect) {
-                statusEl.innerHTML = '<span class="text-green-400">✅ CORRECT</span>';
-                correctSound.play().catch(()=>{});
-                document.getElementById(`dot-${currentTaskIndex + 1}`).classList.add('dot-active');
-
-                if (currentTaskIndex < 2) {
-                    setTimeout(() => { currentTaskIndex++; loadTask(); }, 1000);
-                } else {
-                    setTimeout(showCompleteModal, 800);
-                }
-            } else {
-                statusEl.innerHTML = '<span class="text-red-500">❌ WRONG</span>';
-            }
-        } catch (e) {
-            table.classList.add('hidden');
-            errorDiv.innerText = e.message;
-            errorDiv.classList.remove('hidden');
-            statusEl.innerHTML = '<span class="text-red-600">ERROR</span>';
+    window.moveWord = function(btn, word, toTarget) {
+        btn.remove(); const newBtn = document.createElement('div'); newBtn.innerText = word;
+        if (toTarget) {
+            newBtn.className = "word-chip target-word flex items-center justify-center";
+            newBtn.onclick = () => moveWord(newBtn, word, false);
+            document.getElementById('scramble-target').appendChild(newBtn);
+            scrambleSelected.push(word);
+        } else {
+            newBtn.className = "word-chip flex items-center justify-center";
+            newBtn.onclick = () => moveWord(newBtn, word, true);
+            document.getElementById('scramble-source').appendChild(newBtn);
+            const index = scrambleSelected.indexOf(word); if (index > -1) scrambleSelected.splice(index, 1);
         }
     }
 
-    function showCompleteModal() {
-        confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
-        const modal = document.getElementById('lesson-complete-modal');
-        modal.classList.remove('hidden');
-        setTimeout(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); }, 50);
-    }
+    window.checkAnswer = async function() {
+        const task = currentTasks[currentTaskIndex];
+        let userQuery = task.type === 'SCRAMBLE' ? scrambleSelected.join(' ') : cmEditor.getValue();
+        const btn = document.getElementById('btn-check'), status = document.getElementById('status-msg');
+        if(btn) { btn.disabled = true; btn.innerText = "..."; }
 
-    function hideModal() {
-        const modal = document.getElementById('lesson-complete-modal');
-        modal.classList.add('opacity-0', 'pointer-events-none');
-        setTimeout(() => modal.classList.add('hidden'), 300);
-    }
+        if (task.type === 'SQL') {
+            const table = document.getElementById('result-table'), tbody = document.getElementById('result-body'), thead = document.getElementById('result-head'), errorDiv = document.getElementById('error-msg'), emptyState = document.getElementById('empty-state');
+            emptyState?.classList.add('hidden'); errorDiv?.classList.add('hidden'); table?.classList.remove('hidden');
+            try {
+                const localRes = alasql(userQuery);
+                if(thead) thead.innerHTML = '';
+                if(tbody) tbody.innerHTML = '';
+                if(Array.isArray(localRes) && localRes.length > 0) {
+                    Object.keys(localRes[0]).forEach(k => { const th = document.createElement('th'); th.className="px-4 py-2 text-left"; th.innerText=k; thead?.appendChild(th); });
+                    localRes.forEach(row => { const tr = document.createElement('tr'); tr.className="app-border border-b"; Object.values(row).forEach(v => { const td = document.createElement('td'); td.className="px-4 py-2 app-text-muted"; td.innerText=v; tr.appendChild(td); }); tbody?.appendChild(tr); });
+                }
+            } catch(e) {
+                if(status) status.innerHTML = `<span class="text-red-500">SYNTAX ERROR</span>`;
+                if(errorDiv) { errorDiv.innerText = e.message; errorDiv.classList.remove('hidden'); }
+                if(table) table.classList.add('hidden');
+                if(btn) { btn.disabled = false; btn.innerText = "CHECK"; }
+                return;
+            }
+        }
 
-    function nextLesson() {
-        loadLesson(currentLessonIndex + 1);
-    }
+        try {
+            let isCorrect = false;
+            try {
+                const res = await fetchWithAuth(`/api/v1/tasks/${task.id}`, { method: 'POST', body: userQuery, headers: { 'Content-Type': 'text/plain' } });
+                isCorrect = (await res.text()).includes("result:true");
+            } catch(err) { if (JSON.stringify(alasql(userQuery)) === JSON.stringify(alasql(task.checkSql))) isCorrect = true; }
 
-    init();
+            if (isCorrect) {
+                if(status) status.innerHTML = `<span class="text-green-500">CORRECT</span>`;
+                try { correctSound.currentTime=0; correctSound.play().catch(()=>{}); } catch(e){}
+                try { confetti({ particleCount: 50, spread: 50, origin: { y: 0.8 } }); } catch(e){}
+                btn?.classList.add('hidden'); document.getElementById('btn-next')?.classList.remove('hidden');
+            } else {
+                if(status) status.innerHTML = `<span class="text-red-500">WRONG</span>`;
+                if(btn) { btn.disabled = false; btn.innerText = "CHECK"; }
+                if (task.type === 'SCRAMBLE') {
+                    const tgt = document.getElementById('scramble-target');
+                    if(tgt) { tgt.classList.add('error'); setTimeout(() => tgt.classList.remove('error'), 500); }
+                }
+            }
+        } catch (e) { if(btn) { btn.disabled = false; btn.innerText = "ERROR"; } }
+    };
+
+    window.nextTask = async function() {
+        if (currentTaskIndex < currentTasks.length - 1) { loadTask(currentTaskIndex + 1); }
+        else {
+            document.getElementById('lesson-progress-bar').style.width = `100%`;
+            try {
+                const res = await fetchWithAuth(`/api/v1/lessons/${currentLesson.id}/complete`, { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    const sc = document.getElementById('stars-container');
+                    if(sc) { sc.innerHTML = ''; for(let i=0; i<3; i++) sc.innerHTML += `<span class="${i < data.stars ? 'text-yellow-400 drop-shadow-md' : 'text-slate-700 opacity-50'}">★</span>`; }
+                    const xpEl = document.getElementById('total-xp-earned');
+                    if(xpEl) xpEl.innerText = data.xpEarned || 0;
+                }
+            } catch(e) {}
+            const modal = document.getElementById('lesson-finish-modal');
+            if(modal) { modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div')?.classList.remove('scale-95'); }, 10); }
+            try { confetti({ particleCount: 300, spread: 120, origin: { y: 0.5 } }); } catch(e){}
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
 </html>
