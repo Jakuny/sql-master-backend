@@ -9,12 +9,12 @@ import com.jakunya.sqlmaster.dto.user.UserResponseDto;
 import com.jakunya.sqlmaster.model.User;
 import com.jakunya.sqlmaster.repository.UserRepository;
 import com.jakunya.sqlmaster.security.jwt.JwtService;
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;

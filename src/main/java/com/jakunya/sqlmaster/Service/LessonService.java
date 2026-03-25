@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -142,18 +143,18 @@ public class LessonService {
      }
 
     public LessonCompleteDto completeLesson(long id, String email){
-        //Переменные
         User user = userService.findUserByEmail(email);
         Lesson lesson = repository.getLessonById(id);
         LessonProgress progress = getOrCreateTaskLessonProgress(user, lesson);
         List<Task> tasks = lesson.getTasks();
         Set<Task> userTasks = user.getSolvedTasks();
-        //Проверка на решение задач
         for (Task task : tasks) {
-            if (!userTasks.contains(task)){ //если юзер НЕ прошёл ВСЕ задания в уроке отказ
+            if (!userTasks.contains(task)){
                 throw new RuntimeException("You dont complete all Tasks");
             }
         }
+
+
         int mistakes = progress.getMistakes_count();
         int stars = 0;
 
@@ -172,11 +173,14 @@ public class LessonService {
             actualXpEarned = lesson.getSeasonXp();
             userService.addExp(user, actualXpEarned);
         }
+        userService.updateStreak(user);
+        user.setLastCorrectTask(LocalDate.now());
+        userService.updateUser(user);
+
 
         if (stars > progress.getStars()){
             progress.setStars(stars);
         }
-        progress.setStars(stars);
         progress.setCompleted(true);
         lessonProgressRepository.save(progress);
 

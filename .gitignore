@@ -49,3 +49,4 @@ nbdist/
 /src/main/resources/application.properties
 src/main/resources/static
 uploads/avatars
+/src/main/resources/application-test.properties

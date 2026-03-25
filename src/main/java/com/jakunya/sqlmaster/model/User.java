@@ -47,7 +47,7 @@ public class User {
     private LocalDate lastActivity;
     @ManyToMany
     @JoinTable(
-            name = "user_solved_tasks", // Имя новой таблицы-связки в БД
+            name = "user_solved_tasks",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "task_id")
     )

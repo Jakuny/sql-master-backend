@@ -12,6 +12,7 @@
     import com.jakunya.sqlmaster.repository.LessonProgressRepository;
     import com.jakunya.sqlmaster.repository.TaskRepository;
     import com.jakunya.sqlmaster.repository.UserRepository;
+    import com.jakunya.sqlmaster.security.RateLimitFilter;
     import lombok.AllArgsConstructor;
     import org.springframework.data.redis.core.RedisTemplate;
     import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@
     import java.util.Collections;
     import java.util.List;
     import java.time.Duration;
+    import java.util.Locale;
 
 
     import static java.util.stream.Collectors.toList;
@@ -113,32 +115,49 @@
                     "locked",
                     java.time.Duration.ofSeconds(3)
             );
-            if (Boolean.FALSE.equals(isAllowed)) {throw new org.springframework.web.server.ResponseStatusException(
-                    HttpStatus.TOO_MANY_REQUESTS, "Wait 3 seconds before trying to check task");
+            if (Boolean.FALSE.equals(isAllowed)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        HttpStatus.TOO_MANY_REQUESTS, "Wait 3 seconds before trying to check task");
             }
             Task task = correctGetTaskById(id);
             User user = userService.findUserByEmail(email);
-            boolean query = sandBoxService.compareResults(task.getInitScript(), userQuery, task.getCorrectQuery());
-            if (!query) {
-                if (task.getLesson() == null){
-                    return ("result:" + false);
+            if (task.getType() == TaskType.SQL) {
+                boolean query = sandBoxService.compareResults(task.getInitScript(), userQuery, task.getCorrectQuery());
+                if (!query) {
+                    if (task.getLesson() == null) {
+                        return ("result:" + false);
+                    } else {
+                        LessonProgress lessonProgress = getOrCreateTaskLessonProgress(user, task.getLesson());
+                        lessonProgress.setMistakes_count(lessonProgress.getMistakes_count() + 1);
+                        lessonProgressRepository.save(lessonProgress);
+                        return ("result:" + false);
+                    }
+                } else if ((user.getSolvedTasks().contains(task))) {
+                    return ("result:" + true);
+                } else {
+                    userService.addExp(user, task.getXpReward());
+                    userService.updateStreak(user);
+                    user.getSolvedTasks().add(task);
+                    user.setLastCorrectTask(LocalDate.now());
+                    userService.updateUser(user);
+                    return ("result:" + true + ". added " + task.getXpReward() + "xp");
+                }
+            } else if (task.getType() == TaskType.SCRAMBLE) {
+                if (task.getCorrectQuery().trim().toLowerCase().equals(userQuery.trim().toLowerCase())) {
+                    user.getSolvedTasks().add(task);
+                    userService.updateUser(user);
+                    return ("result:" + true);
+                }else if ((user.getSolvedTasks().contains(task))) {
+                    return ("result:" + true);
                 } else {
                     LessonProgress lessonProgress = getOrCreateTaskLessonProgress(user, task.getLesson());
                     lessonProgress.setMistakes_count(lessonProgress.getMistakes_count() + 1);
                     lessonProgressRepository.save(lessonProgress);
                     return ("result:" + false);
                 }
-            } else if ((user.getSolvedTasks().contains(task))) {
-                return ("result:" + true);
-            } else {
 
-                userService.addExp(user, task.getXpReward());
-                userService.updateStreak(user);
-                user.getSolvedTasks().add(task);
-                user.setLastCorrectTask(LocalDate.now());
-                userRepository.save(user);
-                return ("result:" + true + ". added "  + task.getXpReward() + "xp" );
-            }
+            } else { throw new RuntimeException("Unknown task type");
+          }
         }
 
         public String createTask(TaskRequestDto dto){
@@ -152,7 +171,5 @@
             repository.save(task);
             return "Task saved";
         }
-
-
 
     }
