@@ -12,7 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.time.Duration;
 
-#@Component
+//@Component
 @RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
     private final StringRedisTemplate redisTemplate;
