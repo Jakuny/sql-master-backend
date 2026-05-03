@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>429 - Too Many Requests</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        .gradient-text {
+            background: linear-gradient(to right, #f59e0b, #ef4444); /* Оранжевый -> Красный */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Вибрация при перегрузке */
+        @keyframes jitter {
+            0% { transform: translate(0,0); }
+            10% { transform: translate(-1px, -1px); }
+            20% { transform: translate(1px, 1px); }
+            30% { transform: translate(-1px, 1px); }
+            40% { transform: translate(1px, -1px); }
+            50% { transform: translate(-1px, -1px); }
+            100% { transform: translate(0,0); }
+        }
+        .jitter-text { animation: jitter 0.2s infinite; opacity: 0.15; }
+
+        /* Эффект пульсирующего жара */
+        @keyframes heat-pulse {
+            0% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.3); }
+            50% { box-shadow: 0 0 50px rgba(239, 68, 68, 0.5); border-color: rgba(239, 68, 68, 0.6); }
+            100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.3); }
+        }
+        .terminal-heat { animation: heat-pulse 2s infinite ease-in-out; }
+
+        @keyframes progress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        .cooldown-bar { animation: progress 30s linear forwards; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up { animation: fadeUp 0.8s ease-out forwards; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden selection:bg-red-500/30">
+
+<!-- Фоновые "горячие" пятна -->
+<div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-600/10 rounded-full blur-[120px]"></div>
+    <div class="absolute top-[10%] right-[10%] w-[300px] h-[300px] bg-orange-600/10 rounded-full blur-[100px]"></div>
+</div>
+
+<div class="relative z-10 max-w-2xl w-full text-center animate-fade-up">
+
+    <!-- Огромная цифра -->
+    <h1 class="text-[140px] font-black leading-none tracking-tighter select-none jitter-text text-red-500">
+        429
+    </h1>
+
+    <div class="relative -mt-20">
+        <h2 class="text-4xl md:text-6xl font-black text-white mb-6 uppercase tracking-tight">
+            <span data-i18n="err_429_heading">Slow <span class="gradient-text">Down</span></span>
+        </h2>
+
+        <!-- Терминал с "перегревом" -->
+        <div class="bg-[#0b1120] border border-red-500/30 rounded-2xl p-6 text-left shadow-2xl max-w-lg mx-auto backdrop-blur-md relative overflow-hidden terminal-heat">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+                <div class="flex gap-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                    <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+                    <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+                </div>
+                <span class="text-[10px] text-red-500 font-mono uppercase tracking-widest animate-pulse">Flood Protected</span>
+            </div>
+
+            <div class="font-mono text-[11px] space-y-2 opacity-90 leading-relaxed">
+                <p class="text-slate-500">timestamp: <span id="time" class="text-slate-400"></span></p>
+                <p class="text-orange-400 font-bold" data-i18n="err_429_terminal_error">HTTP ERROR 429: Too Many Requests</p>
+                <div class="pl-4 text-slate-400 border-l border-red-500/50">
+                    <p data-i18n="err_429_terminal_reason">Reason: IP-based rate limit exceeded.</p>
+                    <p class="text-red-400 mt-1">> Connection throttled.</p>
+                </div>
+                <div class="mt-4">
+                    <p class="text-[9px] text-slate-500 uppercase mb-1" data-i18n="err_429_terminal_wait">Cooling down...</p>
+                    <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-orange-500 to-red-600 cooldown-bar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-slate-400 mt-8 mb-8 text-lg font-medium max-w-md mx-auto" data-i18n="err_429_desc">
+            You're sending requests faster than our database can process them. Take a deep breath and try again in a minute.
+        </p>
+
+        <div class="flex justify-center gap-4">
+            <button onclick="location.reload()" class="px-8 py-3 bg-white text-black hover:bg-slate-200 rounded-xl font-black uppercase tracking-widest text-xs transition shadow-lg shadow-white/10 active:scale-95">
+                <span data-i18n="sand_clear">Retry</span>
+            </button>
+            <a href="/" class="px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition border border-slate-700 hover:border-slate-500 flex items-center gap-2">
+                <span data-i18n="btn_home">Home</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="/js/i18n.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if(window.initTranslations) window.initTranslations();
+        document.getElementById('time').innerText = new Date().toISOString();
+    });
+    window.onTranslationsLoaded = function() {
+        document.title = window.t('err_429_page_title') || '429 - Too Many Requests';
+    };
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+com\jakunya\sqlmaster\Service\UserServiceIntegrationTest.class
+com\jakunya\sqlmaster\security\UserControllerTests.class
+com\jakunya\sqlmaster\SqlmasterApplicationTests.class
+com\jakunya\sqlmaster\Service\SandBoxServieTests.class
+com\jakunya\sqlmaster\Service\UserServiceTests.class

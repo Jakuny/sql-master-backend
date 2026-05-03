@@ -1,0 +1,324 @@
+/* =========================================
+   1. ТЕМИЗАЦИЯ И ПЕРЕМЕННЫЕ
+   ========================================= */
+:root {
+    /* --- DARK THEME (DEFAULT) --- */
+    --bg-body: #0f172a;          /* Slate 900 */
+    --text-main: #e2e8f0;        /* Slate 200 */
+    --text-muted: #94a3b8;       /* Slate 400 */
+
+    /* Карточки и Панели */
+    --card-bg: rgba(30, 41, 59, 0.6);
+    --card-border: rgba(51, 65, 85, 0.5);
+
+    /* Хедер */
+    --nav-bg: rgba(15, 23, 42, 0.85);
+    --nav-border: rgba(255, 255, 255, 0.05);
+
+    /* Редактор */
+    --bg-editor: #1e293b;
+    --border-editor: #334155;
+
+    /* Акцент */
+    --accent: #3b82f6;           /* Blue 500 */
+}
+
+[data-theme="light"] {
+    /* --- LIGHT THEME --- */
+    --bg-body: #f8fafc;          /* Slate 50 */
+    --text-main: #0f172a;        /* Slate 900 */
+    --text-muted: #475569;       /* Slate 600 */
+
+    /* Карточки */
+    --card-bg: rgba(255, 255, 255, 0.8);
+    --card-border: rgba(203, 213, 225, 1); /* Slate 300 */
+
+    /* Хедер */
+    --nav-bg: rgba(255, 255, 255, 0.9);
+    --nav-border: rgba(0, 0, 0, 0.05);
+
+    /* Редактор */
+    --bg-editor: #ffffff;
+    --border-editor: #e2e8f0;
+
+    --accent: #2563eb;           /* Blue 600 */
+}
+
+/* =========================================
+   2. ОСНОВНЫЕ СТИЛИ
+   ========================================= */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s ease;
+}
+
+/* Утилиты для использования переменных в Tailwind классах */
+.app-bg { background-color: var(--bg-body); }
+.app-bg-sec { background-color: var(--card-bg); backdrop-filter: blur(12px); }
+.app-bg-ter { background-color: var(--bg-editor); }
+.app-border { border-color: var(--nav-border); }
+.app-text { color: var(--text-main); }
+.app-text-muted { color: var(--text-muted); }
+
+/* Шрифты */
+.code-font { font-family: 'JetBrains Mono', monospace; }
+
+/* =========================================
+   3. КОМПОНЕНТЫ
+   ========================================= */
+
+/* --- ХЕДЕР И НАВИГАЦИЯ --- */
+.bg-theme-nav {
+    background-color: var(--nav-bg);
+    border-bottom: 1px solid var(--nav-border);
+    backdrop-filter: blur(16px);
+}
+.bg-theme-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(12px);
+}
+.border-theme { border-color: var(--card-border); }
+.text-theme-main { color: var(--text-main) !important; }
+.text-theme-muted { color: var(--text-muted) !important; }
+
+/* Логотип */
+.logo-glow { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+
+/* Выпадающее меню языка */
+.lang-dropdown {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lang-dropdown.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+/* Лоадеры */
+.auth-spinner, .loader {
+    width: 20px; height: 20px;
+    border: 2px solid rgba(59, 130, 246, 0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+.loader { width: 40px; height: 40px; border-width: 3px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* FAQ Аккордеон */
+details { overflow: hidden; transition: all 0.3s ease; }
+details > summary { list-style: none; outline: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] summary ~ * { animation: sweep .4s ease-in-out; }
+@keyframes sweep {
+    0%    {opacity: 0; transform: translateY(-10px)}
+    100%  {opacity: 1; transform: translateY(0)}
+}
+details[open] summary .arrow { transform: rotate(180deg); }
+.arrow { transition: transform 0.3s ease; }
+
+/* =========================================
+   4. ЭФФЕКТЫ И АНИМАЦИИ
+   ========================================= */
+
+/* Градиентный текст */
+.gradient-text {
+    background: linear-gradient(to right, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Появление снизу */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+/* Переходы экранов (SPA) */
+.view-section {
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    opacity: 1;
+    transform: translateY(0);
+    width: 100%; height: 100%;
+}
+.view-hidden {
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+}
+
+/* Каскадная анимация карточек */
+@keyframes cardPop {
+    0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.task-card-animate {
+    opacity: 0;
+    animation: cardPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.animate-row { animation: cardPop 0.3s ease-out forwards; opacity: 0; }
+
+/* Курсор печати */
+.typing-cursor::after {
+    content: '|'; animation: blink 1s infinite; color: var(--accent); margin-left: 2px;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* =========================================
+   5. ВНЕШНИЕ БИБЛИОТЕКИ (OVERRIDES)
+   ========================================= */
+
+/* CodeMirror (Редактор) */
+.CodeMirror {
+    height: 100% !important;
+    border-radius: 0;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    background-color: var(--bg-editor) !important;
+    color: var(--text-main) !important;
+}
+/* Переопределяем цвета для темной темы вручную, если переменные не подхватились */
+body:not([data-theme="light"]) .CodeMirror { background-color: #1e293b !important; color: #e2e8f0 !important; }
+body:not([data-theme="light"]) .CodeMirror-gutters { background-color: #1e293b !important; border-right: 1px solid #334155; }
+
+.CodeMirror-gutters {
+    background-color: var(--bg-editor) !important;
+    border-right: 1px solid var(--nav-border);
+}
+
+/* Подсказки (IntelliSense) */
+.CodeMirror-hints {
+    background-color: var(--bg-editor) !important;
+    border: 1px solid var(--card-border) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5) !important;
+    padding: 4px !important;
+    font-family: 'JetBrains Mono' !important;
+    z-index: 99999 !important;
+    color: var(--text-muted) !important;
+}
+.CodeMirror-hint { color: inherit !important; padding: 4px 8px !important; border-radius: 4px !important; }
+.CodeMirror-hint-active { background-color: var(--accent) !important; color: white !important; font-weight: bold !important; }
+
+/* SweetAlert2 (Модалки) */
+.swal2-popup {
+    background: var(--bg-editor) !important;
+    border-radius: 1.5rem !important;
+    border: 1px solid var(--card-border) !important;
+    color: var(--text-main) !important;
+    backdrop-filter: blur(10px);
+}
+.swal2-title { color: var(--text-main) !important; }
+.swal2-html-container { color: var(--text-muted) !important; }
+.swal2-confirm { background-color: #ef4444 !important; border-radius: 0.75rem !important; }
+.swal2-cancel { background-color: #334155 !important; border-radius: 0.75rem !important; }
+
+/* Скроллбары */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background-color: var(--bg-body); }
+::-webkit-scrollbar-thumb {
+    background-color: #334155;
+    border-radius: 10px;
+    border: 2px solid var(--bg-body);
+}
+::-webkit-scrollbar-thumb:hover { background-color: #475569; }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background-color: #cbd5e1; }
+
+/* =========================================
+   6. УТИЛИТЫ ДЛЯ СЛОЖНОСТИ (TRAINER)
+   ========================================= */
+.diff-EASY { color: #4ade80; background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.2); }
+.diff-MEDIUM { color: #facc15; background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.2); }
+.diff-HARD { color: #f87171; background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.2); }
+/* --- СТИЛИ ДЛЯ ИНТЕРАКТИВНОГО ВИЗУАЛИЗАТОРА JOIN --- */
+.join-viz-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.join-viz-tables-row {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+}
+
+.viz-table {
+    background-color: var(--bg-editor);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    font-size: 0.65rem;
+    font-family: 'JetBrains Mono', monospace;
+    width: 45%;
+    z-index: 10;
+}
+
+.viz-table th {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--accent);
+    padding: 0.25rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.viz-table td {
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-muted);
+    position: relative;
+}
+
+.viz-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Контейнер для отрисовки линий */
+#join-svg-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.viz-line {
+    stroke-width: 2;
+    fill: none;
+    transition: stroke 0.3s, opacity 0.3s;
+    stroke-dasharray: 4;
+    animation: flow 20s linear infinite;
+}
+
+@keyframes flow {
+    to { stroke-dashoffset: -1000; }
+}
+
+/* Стили итоговой таблицы */
+.viz-result-table {
+    width: 100%;
+    background-color: rgba(16, 185, 129, 0.05); /* Легкий зеленый оттенок успеха */
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.viz-result-table th { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
+
+/* Подсветка ключей */
+.key-match { color: #e2e8f0 !important; font-weight: bold; background-color: rgba(59, 130, 246, 0.2); }
+.key-null { color: #ef4444 !important; font-style: italic; }

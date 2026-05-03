@@ -22,7 +22,7 @@
 hs_err_pid*
 
 # Maven build output
-/target/
+
 
 # IntelliJ IDEA specific files
 .idea/
@@ -47,6 +47,5 @@ nbdist/
 
 # Application properties with secrets
 /src/main/resources/application.properties
-src/main/resources/static
 uploads/avatars
 /src/main/resources/application-test.properties

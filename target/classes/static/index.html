@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Master - Home</title>
+
+    <meta name="author" content="Jakunya">
+    <meta name="description" content="Interactive platform for learning SQL. Practice, leaderboards, and interview preparation.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.2/vanilla-tilt.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.9/dist/lenis.min.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #050b14;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --card-border: rgba(51, 65, 85, 0.6);
+            --nav-bg: rgba(5, 11, 20, 0.85);
+            --nav-border: rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="light"] {
+            --bg-body: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-border: rgba(203, 213, 225, 1);
+            --nav-bg: rgba(248, 250, 252, 0.9);
+            --nav-border: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        /* СОЧНЫЙ ПОЛЗУНОК (SCROLLBAR) */
+        ::-webkit-scrollbar { width: 12px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+            border-radius: 100px;
+            border: 4px solid var(--bg-body); /* Создает эффект отступа */
+        }
+        ::-webkit-scrollbar-thumb:hover { background: #60a5fa; }
+        [data-theme="light"] ::-webkit-scrollbar-track { background: #f1f5f9; }
+        [data-theme="light"] ::-webkit-scrollbar-thumb { border-color: #f1f5f9; }
+
+        .bg-theme-nav { background-color: var(--nav-bg); backdrop-filter: blur(16px); border-bottom: 1px solid var(--nav-border); }
+        .text-theme-main { color: var(--text-main) !important; }
+        .text-theme-muted { color: var(--text-muted) !important; }
+        .bg-theme-card { background-color: var(--card-bg); border: 1px solid var(--card-border); backdrop-filter: blur(12px); }
+
+        .gradient-text { background: linear-gradient(to right, #3b82f6, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        .logo-glow { box-shadow: 0 0 25px rgba(59, 130, 246, 0.5); }
+
+        .typing-cursor::after { content: '|'; animation: blink 1s step-end infinite; color: #3b82f6; margin-left: 4px; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .clip-fix {
+            -webkit-mask-image: -webkit-radial-gradient(white, black);
+            isolation: isolate;
+            overflow: hidden;
+            transform: translateZ(0);
+        }
+
+        .faq-item {
+            width: 100%;
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 1.5rem;
+            transition: border-color 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .faq-item:hover { border-color: rgba(59, 130, 246, 0.4); }
+
+        .faq-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1.5rem 2rem; font-weight: 700; font-size: 1.125rem;
+            user-select: none;
+        }
+
+        .faq-content {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+            opacity: 0;
+        }
+
+        .faq-inner { overflow: hidden; padding: 0 2rem; color: var(--text-muted); line-height: 1.6; }
+
+        .faq-item.active .faq-content { grid-template-rows: 1fr; opacity: 1; padding-bottom: 1.5rem; }
+        .faq-item.active .arrow { transform: rotate(180deg); }
+        .arrow { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* ФИКС КНОПКИ ЯЗЫКА */
+        .lang-dropdown {
+            opacity: 0;
+            visibility: hidden; /* Меню теперь реально скрыто */
+            transform: translateY(-10px) scale(0.95);
+            pointer-events: none;
+            transition: all 0.2s;
+        }
+        .lang-dropdown.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .swal2-popup { background: var(--card-bg) !important; border-radius: 1.5rem !important; border: 1px solid var(--card-border) !important; color: var(--text-main) !important; backdrop-filter: blur(10px); }
+
+        .bento-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-radius: 2rem;
+            padding: 2.5rem;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-practice { background: linear-gradient(135deg, #2563eb, #1d4ed8); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(37, 99, 235, 0.3); color: white; }
+        .btn-practice:hover { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 25px 50px rgba(37, 99, 235, 0.4); }
+
+        .btn-leaderboard { background: linear-gradient(135deg, #f59e0b, #d97706); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(245, 158, 11, 0.2); color: white; }
+        .btn-leaderboard:hover { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 25px 50px rgba(245, 158, 11, 0.3); }
+
+        .btn-lessons { background: linear-gradient(135deg, #7c3aed, #6d28d9); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(124, 58, 237, 0.2); color: white; }
+        .btn-lessons:hover { background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 25px 50px rgba(124, 58, 237, 0.3); }
+
+        .btn-sandbox { background: linear-gradient(135deg, #0891b2, #0e7490); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(8, 145, 178, 0.2); color: white; }
+        .btn-sandbox:hover { background: linear-gradient(135deg, #06b6d4, #0891b2); box-shadow: 0 25px 50px rgba(8, 145, 178, 0.3); }
+
+        .btn-disabled { background: var(--card-bg); border: 1px solid var(--card-border); cursor: not-allowed; opacity: 0.6; grayscale: 100%; }[data-theme="light"] .bento-card:not(.btn-disabled) { border: none; }
+
+        html.lenis, html.lenis body { height: auto; }
+        .lenis.lenis-smooth { scroll-behavior: auto !important; }
+        .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+        .lenis.lenis-stopped { overflow: hidden; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col overflow-x-hidden selection:bg-blue-500/30">
+
+<header id="main-header" class="fixed top-0 w-full bg-theme-nav z-50 transition-colors duration-500"></header>
+
+<main class="flex-1 flex flex-col items-center pt-32 pb-20 px-4 relative overflow-hidden">
+
+    <div class="absolute top-[10%] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="max-w-5xl w-full space-y-12 animate-fade-up relative z-10 text-center">
+
+        <div class="space-y-4">
+            <div class="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-black text-blue-400 uppercase tracking-widest shadow-lg shadow-blue-500/5 mb-4">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                <span data-i18n="platform_beta_version">Platform Beta v3.1</span>
+            </div>
+
+            <h1 class="text-5xl md:text-8xl font-black tracking-tighter leading-[1.1] text-theme-main">
+                <span data-i18n="hero_title_1">Learn SQL</span><br>
+                <span class="gradient-text typing-cursor" id="typing-text"></span>
+            </h1>
+
+            <p class="text-xl text-theme-muted leading-relaxed max-w-2xl mx-auto font-medium mt-6" data-i18n="hero_desc">
+                The complete path from novice to pro. Solve tasks, write queries, and compete with other developers.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-16 text-left">
+            <a href="/trainer" class="md:col-span-2 bento-card btn-practice group clip-fix" data-tilt data-tilt-max="3">
+                <div class="absolute -bottom-10 -right-10 opacity-20 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700">
+                    <svg class="w-64 h-64 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+                </div>
+                <div>
+                    <span class="inline-flex items-center gap-2 bg-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md mb-6">
+                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_#4ade80]"></span> <span data-i18n="status_available">Available</span>
+                    </span>
+                    <h3 class="text-4xl md:text-5xl font-black mb-3 tracking-tight" data-i18n="btn_practice">Practice</h3>
+                    <p class="text-blue-100 text-base md:text-lg max-w-sm font-medium leading-relaxed" data-i18n="practice_card_desc">Solve tasks from a real backend. Write code, gain experience and level up.</p>
+                </div>
+                <div class="mt-10 flex items-center gap-2 text-white font-bold uppercase tracking-widest text-xs group-hover:gap-4 transition-all">
+                    <span data-i18n="btn_start_now">Start Now</span> <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </div>
+            </a>
+
+            <a href="/leaderboard" class="bento-card btn-leaderboard group clip-fix" data-tilt data-tilt-max="5">
+                <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="absolute top-6 right-6 opacity-30 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500">
+                    <span class="text-6xl drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">🏆</span>
+                </div>
+                <div class="flex flex-col h-full justify-end relative z-10">
+                    <h3 class="text-3xl font-black text-white mb-2" data-i18n="btn_leaderboard">Leaderboard</h3>
+                    <p class="text-amber-50 text-sm font-medium" data-i18n="leaderboard_card_desc">Compare your XP with other masters.</p>
+                </div>
+            </a>
+
+            <a href="/lessons" class="bento-card btn-lessons group clip-fix" data-tilt data-tilt-max="5">
+                <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="absolute top-6 right-6 opacity-30 group-hover:scale-125 group-hover:-rotate-12 transition-transform duration-500">
+                    <span class="text-6xl drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">📚</span>
+                </div>
+                <div class="flex flex-col h-full justify-end relative z-10">
+                    <h3 class="text-3xl font-black text-white mb-2" data-i18n="btn_lessons">Lessons</h3>
+                    <p class="text-purple-50 text-sm font-medium" data-i18n="lessons_card_desc">Interactive course.</p>
+                </div>
+            </a>
+
+            <a href="/sandbox" class="bento-card btn-sandbox group clip-fix" data-tilt data-tilt-max="5">
+                <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="absolute top-6 right-6 opacity-30 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500">
+                    <span class="text-6xl drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">🛠️</span>
+                </div>
+                <div class="flex flex-col h-full justify-end relative z-10">
+                    <h3 class="text-3xl font-black text-white mb-2" data-i18n="btn_sandbox">Sandbox</h3>
+                    <p class="text-cyan-50 text-sm font-medium" data-i18n="sandbox_card_desc">Your own DB schemas.</p>
+                </div>
+            </a>
+
+            <div class="bento-card btn-disabled group clip-fix">
+                <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+                    <div class="bg-black/90 text-white px-5 py-2 rounded-xl font-black uppercase tracking-widest text-xs flex items-center gap-2 border border-slate-700">🔒 <span data-i18n="btn_soon">Soon</span></div>
+                </div>
+                <div class="absolute top-6 right-6 opacity-10">
+                    <span class="text-6xl">⏱️</span>
+                </div>
+                <div class="flex flex-col h-full justify-end relative z-10">
+                    <h3 class="text-3xl font-black text-slate-500 mb-2" data-i18n="btn_interview_prep">Interview Prep</h3>
+                    <p class="text-slate-600 text-sm font-medium" data-i18n="interview_card_desc">Test yourself against the clock.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<section class="py-24 px-4 max-w-4xl mx-auto relative z-10 w-full">
+    <h2 class="text-4xl font-black text-center mb-12 text-theme-main tracking-tight" data-i18n="faq_title">Frequently Asked Questions</h2>
+    <div class="space-y-4 w-full">
+        <div class="faq-item shadow-lg" onclick="this.classList.toggle('active')">
+            <div class="faq-header text-theme-main">
+                <span data-i18n="faq_q1">Is it free?</span>
+                <svg class="w-6 h-6 text-blue-500 arrow" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            <div class="faq-content">
+                <div class="faq-inner" data-i18n="faq_a1">
+                    Yes, the core features are completely free. We believe in accessible education for everyone.
+                </div>
+            </div>
+        </div>
+        <div class="faq-item shadow-lg" onclick="this.classList.toggle('active')">
+            <div class="faq-header text-theme-main">
+                <span data-i18n="faq_q2">Do I need any experience?</span>
+                <svg class="w-6 h-6 text-blue-500 arrow" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            <div class="faq-content">
+                <div class="faq-inner" data-i18n="faq_a2">
+                    No, we start with the very basics. You will write your first query within 5 minutes.
+                </div>
+            </div>
+        </div>
+        <div class="faq-item shadow-lg" onclick="this.classList.toggle('active')">
+            <div class="faq-header text-theme-main">
+                <span data-i18n="faq_q3">What's the tech stack?</span>
+                <svg class="w-6 h-6 text-blue-500 arrow" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            <div class="faq-content">
+                <div class="faq-inner" data-i18n="faq_a3">
+                    The backend is built with Java & Spring Boot, and the frontend uses pure JavaScript with Tailwind CSS for that juicy look. The in-browser database is powered by AlaSQL.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="text-center py-10 border-t border-theme text-theme-muted text-[10px] font-black uppercase tracking-[0.2em] mt-10">
+    © 2026 SQL Master Ecosystem
+</footer>
+
+<script src="/js/i18n.js"></script>
+<script type="module">
+    import { fetchWithAuth, logout } from '/js/api.js';
+    import { renderHeader } from '/js/components/header.js';
+    window.logout = logout;
+
+    const lenis = new Lenis();
+    function raf(time) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    let words =[];
+    let wordIndex = 0, charIndex = 0, isDeleting = false;
+    let isTypingStarted = false;
+    const typeEl = document.getElementById('typing-text');
+
+    function typeEffect() {
+        if (!words.length || !typeEl) return;
+        const currentWord = words[wordIndex];
+
+        if (isDeleting) {
+            typeEl.innerText = currentWord.substring(0, charIndex - 1);
+            charIndex--;
+        } else {
+            typeEl.innerText = currentWord.substring(0, charIndex + 1);
+            charIndex++;
+        }
+
+        if (!isDeleting && charIndex === currentWord.length) {
+            isDeleting = true;
+            setTimeout(typeEffect, 2000);
+        } else if (isDeleting && charIndex === 0) {
+            isDeleting = false;
+            wordIndex = (wordIndex + 1) % words.length;
+            setTimeout(typeEffect, 500);
+        } else {
+            setTimeout(typeEffect, isDeleting ? 60 : 120);
+        }
+    }
+
+    async function initPage() {
+        const savedTheme = localStorage.getItem('sql_theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+
+        let authData = { isLoggedIn: false };
+        if (localStorage.getItem('sql_token')) {
+            try {
+                const response = await fetchWithAuth('/api/v1/profiles/me');
+                if (response.ok) {
+                    const profile = await response.json();
+                    authData = { isLoggedIn: true, ...profile };
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        renderHeader(authData);
+        if (window.initTranslations) await window.initTranslations();
+        VanillaTilt.init(document.querySelectorAll("[data-tilt]"), { speed: 1000, max: 3 });
+    }
+
+    window.onTranslationsLoaded = function() {
+        document.title = window.t('home_title') || 'SQL Master - Home';
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) metaDesc.content = window.t('meta_description') || '';
+
+        const rawWords = window.t('typing_words');
+        if (Array.isArray(rawWords)) {
+            words = rawWords;
+        } else if (typeof rawWords === 'string') {
+            words = rawWords.split(',').map(w => w.trim());
+        } else {
+            words =["fast", "the fun way", "professionally"];
+        }
+
+        if (!isTypingStarted && words.length > 0) {
+            isTypingStarted = true;
+            typeEffect();
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', initPage);
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>401 - Unauthorized</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .gradient-text { background: linear-gradient(to right, #3b82f6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+        @keyframes shield-pulse { 0% { opacity: 0.6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.2); } 50% { opacity: 1; box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); } 100% { opacity: 0.6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.2); } }
+        .shield-icon { animation: shield-pulse 2.5s infinite; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+
+<div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+    <div class="absolute top-1/4 left-1/3 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]"></div>
+    <div class="absolute bottom-1/4 right-1/3 w-96 h-96 bg-cyan-600/10 rounded-full blur-[100px]"></div>
+</div>
+
+<div class="relative z-10 max-w-2xl w-full text-center">
+
+    <h1 class="text-[120px] font-black leading-none tracking-tighter opacity-10 select-none animate-float text-blue-500">
+        401
+    </h1>
+
+    <div class="relative -mt-16">
+        <div class="mx-auto w-16 h-16 bg-slate-900 border border-blue-500/30 rounded-2xl flex items-center justify-center mb-6 shield-icon">
+            <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+        </div>
+
+        <h2 class="text-4xl md:text-5xl font-bold text-white mb-6" data-i18n="err_401_heading">
+            Auth <span class="gradient-text">Required</span>
+        </h2>
+
+        <div class="bg-[#0b1120] border border-slate-700/50 rounded-xl p-6 text-left shadow-2xl max-w-lg mx-auto backdrop-blur-sm">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+                <div class="flex gap-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+                <span class="text-[10px] text-slate-500 font-mono uppercase">auth_service.log</span>
+            </div>
+
+            <div class="font-mono text-sm space-y-2">
+                <div class="text-slate-400">
+                    <span class="text-purple-400">jwt</span>.<span class="text-blue-400">verify</span>(<span class="text-green-400">token</span>)
+                </div>
+                <div class="text-red-400">
+                    ➜ null
+                </div>
+                <div class="text-slate-500 border-l-2 border-blue-500/50 pl-3 mt-2 text-xs">
+                    <span data-i18n="err_401_terminal_error">Error: 401 Unauthorized</span><br>
+                    <span data-i18n="err_401_terminal_reason">Reason: Token missing or expired.</span><br>
+                    <span data-i18n="err_401_terminal_log">Please authenticate.</span>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-slate-400 mt-8 mb-8 text-lg" data-i18n="err_401_desc">
+            You need to log in to access this resource.
+        </p>
+
+        <div class="flex justify-center gap-4">
+            <a href="/login.html" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition shadow-lg shadow-blue-500/20">
+                <span data-i18n="btn_login">Login</span>
+            </a>
+            <button onclick="history.back()" class="px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition border border-slate-700">
+                <span data-i18n="btn_back">Back</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/i18n.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if(window.initTranslations) window.initTranslations();
+    });
+    window.onTranslationsLoaded = function() {
+        document.title = window.t('err_401_page_title') || '401 - Unauthorized';
+    };
+</script>
+</body>
+</html>

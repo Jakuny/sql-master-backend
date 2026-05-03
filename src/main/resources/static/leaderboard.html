@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Master - Таблица лидеров</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        /* --- ТЕМИЗАЦИЯ И ПЕРЕМЕННЫЕ --- */
+        :root {
+            --bg-body: #050b14;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --card-border: rgba(51, 65, 85, 0.6);
+            --nav-bg: rgba(5, 11, 20, 0.85);
+            --nav-border: rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="light"] {
+            --bg-body: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-border: rgba(203, 213, 225, 1);
+            --nav-bg: rgba(248, 250, 252, 0.9);
+            --nav-border: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        .bg-theme-nav { background-color: var(--nav-bg); backdrop-filter: blur(16px); border-bottom: 1px solid var(--nav-border); }
+        .text-theme-main { color: var(--text-main) !important; }
+        .text-theme-muted { color: var(--text-muted) !important; }
+        .bg-theme-card { background-color: var(--card-bg); border: 1px solid var(--card-border); backdrop-filter: blur(16px); }
+        .border-theme { border-color: var(--card-border); }
+
+        .gradient-text { background: linear-gradient(to right, #fbbf24, #f59e0b, #ea580c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        .logo-glow { box-shadow: 0 0 25px rgba(59, 130, 246, 0.5); }
+        .auth-spinner { width: 20px; height: 20px; border: 2px solid rgba(59, 130, 246, 0.2); border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .loader { width: 40px; height: 40px; border: 3px solid rgba(250, 204, 21, 0.2); border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Кастомное меню языка */
+        .lang-dropdown { opacity: 0; transform: translateY(-10px) scale(0.95); pointer-events: none; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .lang-dropdown.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+        /* SweetAlert */
+        .swal2-popup { background: var(--card-bg) !important; border-radius: 1.5rem !important; border: 1px solid var(--card-border) !important; color: var(--text-main) !important; backdrop-filter: blur(10px); }
+        .swal2-title { color: var(--text-main) !important; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background-color: var(--bg-body); }
+        ::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 10px; border: 2px solid var(--bg-body); }[data-theme="light"] ::-webkit-scrollbar-thumb { background-color: #cbd5e1; }
+
+        /* Анимация строк таблицы */
+        .row-animate { opacity: 0; animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* Спец-стили для Топ-3 */
+        .rank-1 { background: linear-gradient(90deg, rgba(250, 204, 21, 0.1) 0%, transparent 100%); border-left: 4px solid #fbbf24; }
+        .rank-2 { background: linear-gradient(90deg, rgba(148, 163, 184, 0.1) 0%, transparent 100%); border-left: 4px solid #94a3b8; }
+        .rank-3 { background: linear-gradient(90deg, rgba(234, 88, 12, 0.1) 0%, transparent 100%); border-left: 4px solid #ea580c; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col overflow-x-hidden selection:bg-yellow-500/30">
+
+<!-- ХЕДЕР -->
+<header id="main-header" class="fixed top-0 w-full bg-theme-nav z-50 transition-colors duration-500"></header>
+
+<main class="flex-1 flex flex-col items-center pt-32 pb-20 px-4 relative overflow-hidden">
+
+    <!-- Фоновые сочные пятна (Золото и Пурпур) -->
+    <div class="absolute top-[5%] left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-r from-yellow-500/10 to-orange-600/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+
+    <div class="max-w-4xl w-full relative z-10">
+
+        <!-- Заголовок -->
+        <div class="text-center mb-12 animate-fade-up">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-6 shadow-[0_0_30px_rgba(250,204,21,0.2)]">
+                <span class="text-4xl">🏆</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-black tracking-tighter leading-tight text-theme-main">
+                HALL OF <span class="gradient-text">FAME</span>
+            </h1>
+            <p class="text-lg text-theme-muted mt-4 font-medium">Топ-100 мастеров SQL по заработанному опыту.</p>
+        </div>
+
+        <!-- Контейнер Лидерборда -->
+        <div class="bg-theme-card rounded-[2rem] shadow-2xl overflow-hidden animate-fade-up" style="animation-delay: 0.2s;">
+
+            <!-- Шапка таблицы -->
+            <div class="flex items-center justify-between p-6 border-b border-theme bg-black/20">
+                <div class="flex items-center gap-6 w-full">
+                    <div class="w-12 text-center text-[10px] font-black text-theme-muted uppercase tracking-widest">Rank</div>
+                    <div class="flex-1 text-[10px] font-black text-theme-muted uppercase tracking-widest">Master</div>
+                    <div class="text-[10px] font-black text-theme-muted uppercase tracking-widest text-right">Total XP</div>
+                </div>
+            </div>
+
+            <!-- Лоадер -->
+            <div id="loader" class="flex items-center justify-center py-20">
+                <div class="loader"></div>
+            </div>
+
+            <!-- Ошибка -->
+            <div id="error-container" class="hidden flex-col items-center justify-center py-20 text-center px-4">
+                <div class="text-5xl mb-4 opacity-50">🔌</div>
+                <h2 class="text-xl font-bold text-red-400">Ошибка подключения</h2>
+                <p class="text-theme-muted text-sm mt-2">Сервер недоступен, показываем демо-данные.</p>
+            </div>
+
+            <!-- Список (Flexbox Rows) -->
+            <div id="leaderboard-body" class="flex flex-col divide-y divide-white/5">
+                <!-- Сюда вставляются строки через JS -->
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<footer class="text-center py-10 border-t border-theme text-theme-muted text-[10px] font-black uppercase tracking-[0.2em] mt-10 relative z-10">
+    © 2026 SQL Master Ecosystem
+</footer>
+
+<!-- СКРИПТЫ -->
+<script type="module">
+    import { fetchWithAuth, logout } from '/js/api.js';
+    import { renderHeader } from '/js/components/header.js';
+
+    window.logout = logout;
+
+    // --- ГЛОБАЛЬНЫЕ ФУНКЦИИ ХЕДЕРА ---
+    window.toggleTheme = function() {
+        const body = document.body;
+        const currentTheme = body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        body.setAttribute('data-theme', newTheme);
+        localStorage.setItem('sql_theme', newTheme);
+        updateThemeIcons(newTheme);
+    };
+
+    function updateThemeIcons(theme) {
+        const sun = document.getElementById('icon-sun');
+        const moon = document.getElementById('icon-moon');
+        if(sun && moon) {
+            sun.classList.toggle('hidden', theme === 'dark');
+            moon.classList.toggle('hidden', theme === 'light');
+        }
+    }
+
+    window.toggleLangMenu = () => {
+        const menu = document.getElementById('lang-menu');
+        if(menu) menu.classList.toggle('open');
+    };
+
+    window.handleLangChange = (lang, label) => {
+        const menu = document.getElementById('lang-menu');
+        if(menu) menu.classList.remove('open');
+        if(window.changeLanguage) window.changeLanguage(lang);
+        const lbl = document.getElementById('current-lang-label');
+        if(lbl) lbl.innerText = label;
+    };
+
+    window.confirmLogout = async function() {
+        const t = window.t || ((k)=>k);
+        if (typeof Swal !== 'undefined') {
+            const result = await Swal.fire({
+                title: t('confirm_logout_title') || 'Logout?',
+                icon: 'warning', iconColor: '#ef4444',
+                showCancelButton: true, confirmButtonText: 'Yes', cancelButtonText: 'No',
+                reverseButtons: true
+            });
+            if (result.isConfirmed) logout();
+        } else logout();
+    };
+
+    // --- ДЕМО ДАННЫЕ (Если бэкенд упал) ---
+    const MOCK_LEADERBOARD =[
+        { username: "Jakunya", xp: 15420 },
+        { username: "SQL_God", xp: 14200 },
+        { username: "DataWitch", xp: 12050 },
+        { username: "AlexDev", xp: 9500 },
+        { username: "JoinMaster", xp: 8400 },
+        { username: "SelectStar", xp: 5200 },
+        { username: "NoobKiller", xp: 420 },
+        { username: "Student_99", xp: 150 }
+    ];
+
+    // --- ЛОГИКА СТРАНИЦЫ ---
+    async function initApp() {
+        const savedTheme = localStorage.getItem('sql_theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+
+        const token = localStorage.getItem('sql_token');
+        let authData = { isLoggedIn: false };
+
+        if (token) {
+            try {
+                const response = await fetchWithAuth('/api/v1/profiles/me');
+                if (response.ok) {
+                    const profile = await response.json();
+                    localStorage.setItem('sql_username', profile.username);
+                    authData = { isLoggedIn: true, username: profile.username, lvl: profile.lvl, avatarUrl: profile.avatarUrl };
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // Рендер Хедера
+        if (typeof renderHeader === 'function') renderHeader(authData);
+        updateThemeIcons(savedTheme);
+
+        if (window.applyTranslations) window.applyTranslations();
+
+        const savedLang = localStorage.getItem('sql_lang') || 'ru';
+        const labels = { ru: 'Русский', en: 'English', es: 'Español', zh: '中文' };
+        const lLabel = document.getElementById('current-lang-label');
+        if(lLabel) lLabel.innerText = labels[savedLang];
+
+        // Загрузка Лидерборда
+        await loadLeaderboard();
+    }
+
+    async function loadLeaderboard() {
+        const tbody = document.getElementById('leaderboard-body');
+        const loader = document.getElementById('loader');
+        const errorContainer = document.getElementById('error-container');
+
+        let players =[];
+
+        try {
+            const response = await fetch('/api/v1/leaderboard/xp'); // API запрос
+            if (!response.ok) throw new Error("API failed");
+            players = await response.json();
+        } catch(err) {
+            console.error("API Error, using mock data", err);
+            players = MOCK_LEADERBOARD; // ФОЛЛБЭК НА МОКИ
+            errorContainer.classList.remove('hidden'); // Показываем плашку об ошибке
+            setTimeout(() => errorContainer.classList.add('hidden'), 5000); // Прячем через 5 сек
+        }
+
+        loader.classList.add('hidden');
+        renderTable(players);
+    }
+
+    function renderTable(players) {
+        const tbody = document.getElementById('leaderboard-body');
+        tbody.innerHTML = '';
+
+        // Палитра для аватарок
+        const colors =['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500'];
+
+        // Текущий пользователь
+        const myUsername = localStorage.getItem('sql_username');
+
+        players.forEach((player, index) => {
+            const rank = index + 1;
+            const row = document.createElement('div');
+
+            // Настройки дизайна в зависимости от места
+            let rankClass = "text-theme-muted";
+            let nameClass = "text-theme-main font-bold";
+            let rowClass = "hover:bg-white/5 transition-colors p-4 md:p-6 flex items-center justify-between border-l-4 border-transparent row-animate";
+            let medal = "";
+            let xpColor = "text-theme-main";
+
+            if (rank === 1) { rankClass = "text-yellow-400"; medal = "🏆"; rowClass += " rank-1"; xpColor = "text-yellow-400"; }
+            else if (rank === 2) { rankClass = "text-slate-300"; medal = "🥈"; rowClass += " rank-2"; }
+            else if (rank === 3) { rankClass = "text-orange-400"; medal = "🥉"; rowClass += " rank-3"; }
+            else if (rank > 3) { nameClass = "text-theme-muted font-medium"; }
+
+            // Выделяем самого себя
+            if (player.username === myUsername) {
+                rowClass += " bg-blue-500/10";
+                nameClass = "text-blue-400 font-black";
+            }
+
+            // Вычисляем цвет аватарки по имени
+            const colorIndex = player.username.charCodeAt(0) % colors.length;
+            const avatarBg = colors[colorIndex];
+            const avatarLetter = player.username.charAt(0).toUpperCase();
+
+            row.className = rowClass;
+            row.style.animationDelay = `${index * 50}ms`; // Каскадное появление
+
+            row.innerHTML = `
+                    <div class="flex items-center gap-4 md:gap-6 w-full">
+                        <div class="w-8 md:w-12 text-center text-lg md:text-2xl font-black ${rankClass}">${rank}</div>
+
+                        <div class="flex-1 flex items-center gap-4">
+                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl ${avatarBg} flex items-center justify-center text-sm md:text-lg font-black text-white shadow-lg uppercase border border-white/10">
+                                ${avatarLetter}
+                            </div>
+                            <div class="flex flex-col">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-base md:text-xl ${nameClass} tracking-tight">${player.username}</span>
+                                    ${medal ? `<span class="text-xl drop-shadow-md">${medal}</span>` : ''}
+                                </div>
+                                <span class="text-[10px] font-black text-theme-muted uppercase tracking-widest hidden md:block">Master Level</span>
+                            </div>
+                        </div>
+
+                        <div class="text-right">
+                            <div class="text-lg md:text-2xl font-black ${xpColor} tracking-tighter">${player.xp}</div>
+                            <div class="text-[10px] font-black text-theme-muted uppercase tracking-widest">XP</div>
+                        </div>
+                    </div>
+                `;
+
+            tbody.appendChild(row);
+        });
+    }
+
+    // Запуск
+    document.addEventListener('DOMContentLoaded', initApp);
+
+    // Закрытие меню языка
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('lang-menu');
+        const btn = document.getElementById('lang-btn');
+        if (menu && btn && !btn.contains(e.target)) {
+            menu.classList.remove('open');
+        }
+    });
+</script>
+<script src="/js/i18n.js"></script>
+</body>
+</html>
