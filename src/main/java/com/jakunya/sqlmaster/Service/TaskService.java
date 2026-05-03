@@ -143,7 +143,10 @@
                     return ("result:" + true + ". added " + task.getXpReward() + "xp");
                 }
             } else if (task.getType() == TaskType.SCRAMBLE) {
-                if (task.getCorrectQuery().trim().toLowerCase().equals(userQuery.trim().toLowerCase())) {
+                String normalizedCorrect = task.getCorrectQuery().replaceAll("\\s+", "").toLowerCase();
+                String normalizedUser = userQuery.replaceAll("\\s+", "").toLowerCase();
+
+                if (normalizedCorrect.equals(normalizedUser)) {
                     user.getSolvedTasks().add(task);
                     userService.updateUser(user);
                     return ("result:" + true);
