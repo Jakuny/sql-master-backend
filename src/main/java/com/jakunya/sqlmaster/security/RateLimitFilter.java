@@ -24,7 +24,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         Long CurrentRequest = redisTemplate.opsForValue().increment(key);
         if(CurrentRequest == 1){
             redisTemplate.expire(key, Duration.ofSeconds(10));
-        } else if(CurrentRequest > 20){
+        } else if(CurrentRequest > 100){
             response.setStatus(429);
             return;
         }

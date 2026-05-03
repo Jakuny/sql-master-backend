@@ -30,6 +30,9 @@ public class HtmlController {
     @GetMapping("/sandbox")
     public String sandbox() {return "forward:/sandbox.html";}
 
+    @GetMapping("/leaderboard")
+    public String leaderboard() {return "forward:/leaderboard.html";}
+
 
 
 }
