@@ -40,7 +40,7 @@ public class SecurityConfig {
         http.httpBasic(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(rateLimitFilter, JwtFilter.class)
+#               .addFilterBefore(rateLimitFilter, JwtFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/profiles/me").authenticated()
                         .requestMatchers("/api/v1/users/**", "/api/v1/users").hasRole("ADMIN")
